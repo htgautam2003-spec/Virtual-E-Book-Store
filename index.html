@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Virtual E-Book Store</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="my.css">
+</head>
+<body>
+
+<div id="toast"></div>
+<button id="btt" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<!-- CART SIDEBAR -->
+<div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
+<div class="cart-sidebar" id="cartSidebar">
+  <div class="cart-head">
+    <h3>📚 Your Cart</h3>
+    <button class="close-cart" onclick="toggleCart()">×</button>
+  </div>
+  <div class="cart-body" id="cartBody"></div>
+  <div class="cart-foot">
+    <div class="cart-total"><span>Total Amount</span><span id="cartTotal">₹0</span></div>
+    <button class="checkout-btn" onclick="openCheckout()">💳 Proceed to Checkout</button>
+  </div>
+</div>
+
+<!-- PAYMENT MODAL -->
+<div class="modal-overlay" id="payModal">
+  <div class="modal">
+    <button class="close-modal" onclick="closeModal('payModal')">×</button>
+    <h2>Complete Purchase 💎</h2>
+    <p>Choose your preferred payment method</p>
+    <div class="order-summary">
+      <h4>Order Summary</h4>
+      <div id="summaryItems"></div>
+      <div class="summary-row summary-total"><span>Total</span><span id="summaryTotal">₹0</span></div>
+    </div>
+    <div class="pay-tabs">
+      <button class="pay-tab active" onclick="switchPay('card',this)"><i class='bx bx-credit-card'></i>Card</button>
+      <button class="pay-tab" onclick="switchPay('netbank',this)"><i class='bx bx-building-house'></i>Net Banking</button>
+      <button class="pay-tab" onclick="switchPay('upi',this)"><i class='bx bx-qr'></i>UPI</button>
+      <button class="pay-tab" onclick="switchPay('cod',this)"><i class='bx bx-package'></i>COD</button>
+    </div>
+    <div class="pay-content active" id="pay-card">
+      <div class="pay-field"><label>Card Number</label><input type="text" id="cardNum" placeholder="1234 5678 9012 3456" maxlength="19"></div>
+      <div class="pay-field"><label>Card Holder Name</label><input type="text" id="cardName" placeholder="Your Full Name"></div>
+      <div class="pay-row">
+        <div class="pay-field"><label>Expiry</label><input type="text" id="cardExp" placeholder="MM/YY" maxlength="5"></div>
+        <div class="pay-field"><label>CVV</label><input type="password" id="cardCvv" placeholder="•••" maxlength="3"></div>
+      </div>
+      <button class="pay-btn" onclick="processPayment('Credit/Debit Card')">💳 Pay Now</button>
+    </div>
+    <div class="pay-content" id="pay-netbank">
+      <div class="pay-field">
+        <label>Select Bank</label>
+        <select id="bankSelect" style="background:#1a1033;border:1.5px solid rgba(124,58,237,0.2);border-radius:10px;padding:12px 15px;color:white;width:100%;font-family:'Outfit',sans-serif;font-size:15px;outline:none;">
+          <option value="">-- Choose Bank --</option>
+          <option>State Bank of India (SBI)</option>
+          <option>HDFC Bank</option>
+          <option>ICICI Bank</option>
+          <option>Axis Bank</option>
+          <option>Punjab National Bank</option>
+          <option>Bank of Baroda</option>
+          <option>Kotak Mahindra Bank</option>
+        </select>
+      </div>
+      <div class="pay-field"><label>User ID</label><input type="text" id="netUser" placeholder="Net Banking User ID"></div>
+      <div class="pay-field"><label>Password</label><input type="password" id="netPass" placeholder="Net Banking Password"></div>
+      <button class="pay-btn" onclick="processPayment('Net Banking')">🏦 Pay via Net Banking</button>
+    </div>
+    <div class="pay-content" id="pay-upi">
+      <div class="qr-box">
+        <div class="qr-img"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=virtualebook@paytm&pn=VirtualEBook&cu=INR" alt="QR"></div>
+        <p class="upi-id">UPI ID: <span>virtualebook@paytm</span></p>
+        <p style="color:#6b5b95;font-size:13px;margin-top:8px">Scan QR or enter UPI ID below</p>
+      </div>
+      <div class="pay-field"><label>Or Enter UPI ID</label><input type="text" id="upiId" placeholder="yourname@upi"></div>
+      <button class="pay-btn" onclick="processPayment('UPI')">📱 Pay via UPI</button>
+    </div>
+    <div class="pay-content" id="pay-cod">
+      <div class="cod-box">
+        <span class="cod-icon">📦</span>
+        <h3 style="font-family:'Cormorant Garamond',serif;margin-bottom:10px">Cash on Delivery</h3>
+        <p>Pay when your book access code arrives in your email. Our team contacts you within 24 hours.</p>
+      </div>
+      <div class="pay-field" style="margin-top:16px"><label>Confirm Email</label><input type="email" id="codEmail" placeholder="your@email.com"></div>
+      <button class="pay-btn" onclick="processPayment('Cash on Delivery')">📦 Confirm COD Order</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUCCESS MODAL -->
+<div class="modal-overlay" id="successModal">
+  <div class="modal" style="text-align:center;max-width:400px">
+    <div style="font-size:64px;margin-bottom:16px">🎉</div>
+    <h2 style="font-family:'Cormorant Garamond',serif;font-size:32px;margin-bottom:10px">Order Placed!</h2>
+    <p style="color:#a89bc2;margin-bottom:20px">Your books will be available in your account within minutes.</p>
+    <div id="successDetails" style="background:#1a1033;border-radius:12px;padding:16px;margin-bottom:24px;border:1px solid rgba(124,58,237,0.2);font-size:14px;color:#a89bc2;line-height:1.9;text-align:left;"></div>
+    <button class="pay-btn" onclick="closeModal('successModal');openDownloads()">📥 Go to Downloads</button>
+    <button class="pay-btn" onclick="closeModal('successModal')" style="margin-top:10px;background:rgba(124,58,237,0.2);box-shadow:none;">🏠 Continue Shopping</button>
+  </div>
+</div>
+
+<!-- DOWNLOAD MODAL -->
+<div class="modal-overlay" id="downloadModal">
+  <div class="modal" style="max-width:560px">
+    <button class="close-modal" onclick="closeModal('downloadModal')">×</button>
+    <h2>📥 My Downloads</h2>
+    <p>Your purchased & free books ready to download</p>
+    <div id="downloadList" style="margin-top:16px"></div>
+    <div id="noDownloads" style="text-align:center;padding:40px 20px;color:var(--muted);display:none">
+      <span style="font-size:48px;display:block;margin-bottom:12px">📭</span>
+      <p>No downloads yet. Purchase or add free books first!</p>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN MODAL -->
+<div class="modal-overlay" id="adminModal">
+  <div class="modal" style="max-width:540px">
+    <button class="close-modal" onclick="closeModal('adminModal')">×</button>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+      <span style="font-size:32px">🔐</span>
+      <h2>Admin Panel</h2>
+    </div>
+    <p>Add new books to the store</p>
+    <!-- Admin Login -->
+    <div id="adminLogin">
+      <div class="pay-field" style="margin-top:16px"><label>Admin Password</label><input type="password" id="adminPass" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')adminLogin()"></div>
+      <button class="pay-btn" onclick="adminLogin()">🔓 Login as Admin</button>
+      <p style="color:#6b5b95;font-size:13px;margin-top:10px;text-align:center">Default password: <span style="color:#a78bfa">admin123</span></p>
+    </div>
+    <!-- Admin Form -->
+    <div id="adminForm" style="display:none">
+      <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:10px;padding:12px 16px;margin-bottom:20px;display:flex;align-items:center;gap:10px;font-size:14px;color:#10b981">
+        <i class='bx bx-shield-check' style="font-size:20px"></i> Logged in as Admin ✅
+      </div>
+      <div class="pay-field"><label>Book Title *</label><input type="text" id="newTitle" placeholder="e.g. Introduction to Algorithms"></div>
+      <div class="pay-field"><label>Author *</label><input type="text" id="newAuthor" placeholder="e.g. Thomas H. Cormen"></div>
+      <div class="pay-field"><label>Cover Image URL</label><input type="text" id="newImg" placeholder="https://... (leave blank for default)"></div>
+      <div class="pay-row">
+        <div class="pay-field">
+          <label>Price (₹) — 0 = Free</label>
+          <input type="number" id="newPrice" placeholder="0" min="0">
+        </div>
+        <div class="pay-field">
+          <label>Tag</label>
+          <select id="newTag" style="background:#1a1033;border:1.5px solid rgba(124,58,237,0.2);border-radius:10px;padding:12px 15px;color:white;width:100%;font-family:'Outfit',sans-serif;font-size:15px;outline:none;">
+            <option value="premium">Premium 💎</option>
+            <option value="free">Free 🎁</option>
+            <option value="new">New ✨</option>
+          </select>
+        </div>
+      </div>
+      <div class="pay-field"><label>Rating (e.g. 4.8)</label><input type="number" id="newRating" placeholder="4.8" min="1" max="5" step="0.1"></div>
+      <div class="pay-field"><label>Download Link (PDF URL)</label><input type="text" id="newDownload" placeholder="https://... or leave blank"></div>
+      <button class="pay-btn" onclick="addNewBook()">➕ Add Book to Store</button>
+    </div>
+  </div>
+</div>
+
+<!-- NAVBAR -->
+<header>
+  <nav class="navbar">
+    <div class="logo"><h2>📚 Virtual E-Book</h2></div>
+    <div class="nav-menu" id="navMenu">
+      <ul>
+        <li><a href="#home">Home</a></li>
+        <li><a href="#categories">Categories</a></li>
+        <li><a href="#shop">Shop</a></li>
+        <li><a href="#downloads">Downloads</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#blog">Blog</a></li>
+        <li><a href="#contactus">Contact</a></li>
+      </ul>
+    </div>
+    <div class="nav-right">
+      <div class="search-box">
+        <input type="search" id="searchInput" placeholder="Search books..." onkeyup="searchBooks()">
+        <i class='bx bx-search'></i>
+      </div>
+      <button class="icon-btn" onclick="openModal('downloadModal')" title="Downloads">
+        <i class='bx bx-download'></i>
+        <span id="dlCount" style="display:none"></span>
+      </button>
+      <button class="icon-btn admin-btn" onclick="openModal('adminModal')" title="Admin Panel">
+        <i class='bx bx-shield'></i>
+      </button>
+      <button class="cart-btn" onclick="toggleCart()">
+        <i class='bx bx-cart'></i> Cart
+        <span id="cartCount">0</span>
+      </button>
+    </div>
+    <div class="hamburger" onclick="toggleNav()"><span></span><span></span><span></span></div>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section id="home" class="hero">
+  <div class="hero-inner">
+    <div class="hero-text">
+      <div class="hero-badge">📚 Premium E-Book Platform</div>
+      <h1>Expand Your <span>Knowledge</span> With Digital Books</h1>
+      <p>Access thousands of college-level Computer Science e-books. Learn at your own pace with our premium curated content.</p>
+      <div class="hero-btns">
+        <button class="btn-primary" onclick="document.getElementById('shop').scrollIntoView({behavior:'smooth'})">🛒 Browse Books</button>
+        <button class="btn-outline" onclick="document.getElementById('categories').scrollIntoView({behavior:'smooth'})">📂 Categories</button>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><div class="stat-num">5K+</div><div class="stat-label">E-Books</div></div>
+        <div class="stat"><div class="stat-num">12K+</div><div class="stat-label">Students</div></div>
+        <div class="stat"><div class="stat-num">50+</div><div class="stat-label">Subjects</div></div>
+        <div class="stat"><div class="stat-num">4.9★</div><div class="stat-label">Rating</div></div>
+      </div>
+    </div>
+    <div class="hero-img">
+      <img src="https://thumbs.dreamstime.com/b/print-book-e-book-old-vs-new-media-19604894.jpg" alt="E-Books">
+    </div>
+  </div>
+</section>
+
+<!-- CATEGORIES -->
+<section id="categories" class="categories">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-label">Browse</div>
+      <h2 class="sec-title">Book Categories</h2>
+      <p class="sec-sub">Find all your favourite Computer Science books here!</p>
+    </div>
+    <div class="cat-grid">
+      <a href="computer.html" class="cat-card fade-up">
+        <span class="cat-badge">Detailed ✨</span>
+        <div class="cat-img"><img src="https://img.freepik.com/free-vector/creative-abstract-quantum-illustration_23-2149236239.jpg"></div>
+        <h4>Computer Science</h4>
+        <p>DSA, Algorithms, OS, DBMS, Networks & OOP</p>
+      </a>
+      <a href="programming.html" class="cat-card fade-up">
+        <span class="cat-badge">Hot 🔥</span>
+        <div class="cat-img"><img src="https://img.freepik.com/free-vector/programming-concept-illustration_114360-1351.jpg"></div>
+        <h4>Programming</h4>
+        <p>Python, Java, C++, JavaScript & Web Dev</p>
+      </a>
+      <a href="networking.html" class="cat-card fade-up">
+        <div class="cat-img"><img src="https://img.freepik.com/free-vector/network-mesh-wire-digital-technology-background_1017-27428.jpg"></div>
+        <h4>Networking</h4>
+        <p>TCP/IP, Network Security, Cloud Computing</p>
+      </a>
+      <a href="ai.html" class="cat-card fade-up">
+        <span class="cat-badge">Trending</span>
+        <div class="cat-img"><img src="https://img.freepik.com/free-vector/ai-technology-microchip-background-vector-digital-transformation-concept_53876-112222.jpg"></div>
+        <h4>AI & Machine Learning</h4>
+        <p>Deep Learning, NLP, Computer Vision</p>
+      </a>
+      <a href="database.html" class="cat-card fade-up">
+        <div class="cat-img"><img src="https://img.freepik.com/free-vector/data-inform-illustration-concept_114360-864.jpg"></div>
+        <h4>Database Systems</h4>
+        <p>SQL, MongoDB, PostgreSQL, Redis</p>
+      </a>
+      <a href="cybersecurity.html" class="cat-card fade-up">
+        <div class="cat-img"><img src="https://img.freepik.com/free-vector/cyber-security-concept_23-2148532223.jpg"></div>
+        <h4>Cybersecurity</h4>
+        <p>Ethical Hacking, Cryptography, Firewalls</p>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- SHOP -->
+<section id="shop" class="shop">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-label">Store</div>
+      <h2 class="sec-title">Popular Books</h2>
+      <p class="sec-sub">Top rated Computer Science books for college students</p>
+    </div>
+    <div class="filter-bar">
+      <button class="filter-btn active" onclick="filterBooks('all',this)">All Books</button>
+      <button class="filter-btn" onclick="filterBooks('free',this)">Free 🎁</button>
+      <button class="filter-btn" onclick="filterBooks('premium',this)">Premium 💎</button>
+      <button class="filter-btn" onclick="filterBooks('new',this)">New Arrivals ✨</button>
+    </div>
+    <div class="books-grid" id="booksGrid">
+      <!-- Books rendered by JS -->
+    </div>
+  </div>
+</section>
+
+<!-- DOWNLOADS -->
+<section id="downloads" class="downloads-section">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-label">Library</div>
+      <h2 class="sec-title">📥 Download Section</h2>
+      <p class="sec-sub">All free books & your purchased books ready to download</p>
+    </div>
+    <div class="dl-grid" id="dlGrid">
+      <!-- Rendered by JS -->
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about" class="about">
+  <div class="container">
+    <div class="about-inner">
+      <div class="about-img fade-up"><img src="https://www.activemarketing.com/wp-content/uploads/2014/03/ebook-image-800.jpg" alt="About"></div>
+      <div class="about-content fade-up">
+        <div class="sec-label">About Us</div>
+        <h2>Why Choose Virtual E-Book?</h2>
+        <p>We provide the best collection of Computer Science e-books for college and university students. Our platform offers premium content curated by industry experts and professors.</p>
+        <div class="feature-list">
+          <div class="feature-item"><i class='bx bx-check-circle'></i> 5000+ Premium CS E-Books</div>
+          <div class="feature-item"><i class='bx bx-check-circle'></i> Download & Read Offline</div>
+          <div class="feature-item"><i class='bx bx-check-circle'></i> Updated Content Every Month</div>
+          <div class="feature-item"><i class='bx bx-check-circle'></i> All Major Payment Options</div>
+          <div class="feature-item"><i class='bx bx-check-circle'></i> 24/7 Student Support</div>
+        </div>
+        <button class="btn-primary" onclick="document.getElementById('shop').scrollIntoView({behavior:'smooth'})">Explore Books →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BLOG -->
+<section id="blog" class="blog">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-label">Blog</div>
+      <h2 class="sec-title">From Our Blog</h2>
+      <p class="sec-sub">Latest articles on Computer Science and Technology</p>
+    </div>
+    <div class="blog-grid">
+      <div class="blog-card fade-up">
+        <div class="blog-img"><img src="https://parade.com/.image/w_2048,q_auto:good,c_limit/ODowMDAwMDAwMDAxMzM5MDU2/best-book-releases-december-2025-the-rest-of-our-lives-ben-markovits.jpg" alt="Blog"></div>
+        <div class="blog-body">
+          <div class="blog-date">📅 25 Dec 2025</div>
+          <h4>Top 10 CS Books Every College Student Must Read</h4>
+          <p>Discover the essential computer science books that will help you excel in your studies and career.</p>
+          <a href="#" class="blog-link">Read More <i class='bx bx-right-arrow-alt'></i></a>
+        </div>
+      </div>
+      <div class="blog-card fade-up">
+        <div class="blog-img"><img src="https://parade.com/.image/w_2048,q_auto:good,c_limit/ODowMDAwMDAwMDAxMzM5MDU2/best-book-releases-december-2025-the-rest-of-our-lives-ben-markovits.jpg" alt="Blog"></div>
+        <div class="blog-body">
+          <div class="blog-date">📅 20 Jan 2026</div>
+          <h4>How AI is Changing the Way We Learn Programming</h4>
+          <p>Artificial Intelligence is revolutionizing education. Learn how AI tools are making programming more accessible.</p>
+          <a href="#" class="blog-link">Read More <i class='bx bx-right-arrow-alt'></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contactus" class="contact">
+  <div class="container">
+    <div class="sec-head" style="margin-bottom:48px">
+      <div class="sec-label">Contact</div>
+      <h2 class="sec-title">Get In Touch</h2>
+      <p class="sec-sub">Have questions? We'd love to hear from you!</p>
+    </div>
+    <div class="contact-inner">
+      <div class="contact-form fade-up">
+        <h3>Send a Message</h3>
+        <p>Fill out the form and we'll respond within 24 hours.</p>
+        <div class="form-group"><label>Full Name</label><input type="text" id="cName" placeholder="Your full name"></div>
+        <div class="form-group"><label>Email</label><input type="email" id="cEmail" placeholder="your@email.com"></div>
+        <div class="form-group"><label>Phone</label><input type="tel" id="cPhone" placeholder="10 digit number"></div>
+        <div class="form-group"><label>Message</label><textarea id="cMsg" placeholder="Write your message..."></textarea></div>
+        <button class="submit-btn" onclick="sendContact()">📨 Send Message</button>
+      </div>
+      <div class="fade-up">
+        <h3 style="font-family:'Cormorant Garamond',serif;font-size:28px;margin-bottom:20px">Contact Info</h3>
+        <div class="info-item"><div class="info-icon"><i class='bx bx-envelope'></i></div><div class="info-text"><h5>Email</h5><p>virtualebook@gmail.com</p></div></div>
+        <div class="info-item"><div class="info-icon"><i class='bx bx-phone'></i></div><div class="info-text"><h5>Phone</h5><p>+91 9835473590</p></div></div>
+        <div class="info-item"><div class="info-icon"><i class='bx bx-map'></i></div><div class="info-text"><h5>Address</h5><p>Patna, Bihar, India</p></div></div>
+        <div class="info-item"><div class="info-icon"><i class='bx bx-time'></i></div><div class="info-text"><h5>Support Hours</h5><p>Mon–Sat: 9AM – 8PM</p></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <h3>📚 Virtual E-Book</h3>
+      <p>Your premium destination for Computer Science e-books. Trusted by 12,000+ college students across India.</p>
+      <div class="social-row">
+        <a href="#" class="soc"><i class='bx bxl-facebook'></i></a>
+        <a href="#" class="soc"><i class='bx bxl-instagram'></i></a>
+        <a href="#" class="soc"><i class='bx bxl-twitter'></i></a>
+        <a href="#" class="soc"><i class='bx bxl-youtube'></i></a>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4>Quick Links</h4>
+      <ul>
+        <li><a href="#home">Home</a></li>
+        <li><a href="#categories">Categories</a></li>
+        <li><a href="#shop">Shop</a></li>
+        <li><a href="#downloads">Downloads</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#blog">Blog</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>CS Topics</h4>
+      <ul>
+        <li><a href="computer.html">Computer Science</a></li>
+        <li><a href="programming.html">Programming</a></li>
+        <li><a href="ai.html">AI & ML</a></li>
+        <li><a href="database.html">Databases</a></li>
+        <li><a href="networking.html">Networking</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Contact</h4>
+      <p>📧 virtualebook@gmail.com</p><br>
+      <p>📞 +91 9835473590</p><br>
+      <p>📍 Patna, Bihar, India</p><br>
+      <p>🕐 Mon–Sat: 9AM – 8PM</p>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 Virtual E-Book Store | All Rights Reserved</p>
+    <p>Made with 💜 for Students</p>
+  </div>
+</footer>
+
+<script src="my.js"></script>
+</body>
+</html>

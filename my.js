@@ -1,0 +1,670 @@
+// ================================
+// API URL - Backend Connection
+// ================================
+const API = "http://localhost:5000";
+
+// ================================
+// STATE
+// ================================
+let cart = JSON.parse(localStorage.getItem("ebookCart") || "[]");
+let downloads = JSON.parse(localStorage.getItem("ebookDownloads") || "[]");
+let books = [];
+let adminLoggedIn = false;
+let currentFilter = "all";
+
+// ================================
+// INIT - Load books from MongoDB
+// ================================
+document.addEventListener("DOMContentLoaded", () => {
+    loadBooks();
+    renderDownloadSection();
+    updateCartCount();
+    updateDlCount();
+});
+
+// ================================
+// LOAD BOOKS FROM MONGODB
+// ================================
+async function loadBooks() {
+    try {
+        const res = await fetch(`${API}/api/books`);
+        books = await res.json();
+
+        // If MongoDB empty, use default books
+        if (books.length === 0) {
+            books = getDefaultBooks();
+            // Save default books to MongoDB
+            for (let book of books) {
+                await fetch(`${API}/api/books`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(book)
+                });
+            }
+            // Reload from MongoDB
+            const res2 = await fetch(`${API}/api/books`);
+            books = await res2.json();
+        }
+        renderBooks();
+        renderDownloadSection();
+    } catch (error) {
+        console.log("Backend not connected, using local data");
+        books = getDefaultBooks();
+        renderBooks();
+        renderDownloadSection();
+    }
+}
+
+// ================================
+// DEFAULT BOOKS DATA
+// ================================
+function getDefaultBooks() {
+    return [
+        {
+            title: "Data Structures & Algorithms",
+            author: "Cormen, Leiserson",
+            price: 299,
+            tag: "premium",
+            rating: "4.9",
+            reviews: "2.3k",
+            img: "https://m.media-amazon.com/images/I/41T7PmhE+hL._SY445_SX342_.jpg",
+            downloadUrl: "#",
+            adminAdded: false
+        },
+        {
+            title: "Operating Systems Concepts",
+            author: "Silberschatz",
+            price: 0,
+            tag: "free",
+            rating: "4.7",
+            reviews: "1.8k",
+            img: "https://m.media-amazon.com/images/I/51Qy2upM+aL._SY445_SX342_.jpg",
+            downloadUrl: "#",
+            adminAdded: false
+        },
+        {
+            title: "Python for Data Science",
+            author: "Wes McKinney",
+            price: 249,
+            tag: "new",
+            rating: "4.8",
+            reviews: "3.1k",
+            img: "https://m.media-amazon.com/images/I/41bSVpNmEAL._SY445_SX342_.jpg",
+            downloadUrl: "#",
+            adminAdded: false
+        },
+        {
+            title: "Database Management Systems",
+            author: "Ramakrishnan",
+            price: 349,
+            tag: "premium",
+            rating: "4.6",
+            reviews: "1.5k",
+            img: "https://m.media-amazon.com/images/I/51eL4eq+prL._SY445_SX342_.jpg",
+            downloadUrl: "#",
+            adminAdded: false
+        },
+        {
+            title: "Computer Networks",
+            author: "Andrew Tanenbaum",
+            price: 0,
+            tag: "free",
+            rating: "4.8",
+            reviews: "2.7k",
+            img: "https://m.media-amazon.com/images/I/41XiZXHkKIL._SY445_SX342_.jpg",
+            downloadUrl: "#",
+            adminAdded: false
+        },
+        {
+            title: "Machine Learning with Python",
+            author: "Sebastian Raschka",
+            price: 399,
+            tag: "new",
+            rating: "4.9",
+            reviews: "4.2k",
+            img: "https://m.media-amazon.com/images/I/51Rz1wZQqYL._SY445_SX342_.jpg",
+            downloadUrl: "#",
+            adminAdded: false
+        }
+    ];
+}
+
+// ================================
+// TOAST
+// ================================
+function showToast(msg, type = "info") {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.className = "show " + type;
+    setTimeout(() => t.className = "", 3200);
+}
+
+// ================================
+// SCROLL
+// ================================
+window.addEventListener("scroll", () => {
+    document.getElementById("btt").classList.toggle("show", window.scrollY > 300);
+});
+
+// ================================
+// NAV
+// ================================
+function toggleNav() {
+    document.getElementById("navMenu").classList.toggle("open");
+}
+
+// ================================
+// MODAL
+// ================================
+function openModal(id) { document.getElementById(id).classList.add("open"); }
+function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".modal-overlay").forEach(m => {
+        m.addEventListener("click", e => {
+            if (e.target === m) m.classList.remove("open");
+        });
+    });
+});
+
+// ================================
+// RENDER BOOKS
+// ================================
+function renderBooks(filter = currentFilter) {
+    const grid = document.getElementById("booksGrid");
+    if (!grid) return;
+
+    let filtered = filter === "all" ? books : books.filter(b => b.tag === filter);
+
+    if (filtered.length === 0) {
+        grid.innerHTML = `<div style="text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">
+            <span style="font-size:48px">📚</span>
+            <p style="margin-top:12px">No books found!</p>
+        </div>`;
+        return;
+    }
+
+    grid.innerHTML = filtered.map(book => {
+        const bookId = book._id || book.id;
+        const tagClass = `tag-${book.tag}`;
+        const tagLabel = book.tag === "free" ? "Free" : book.tag === "premium" ? "Premium 💎" : "New ✨";
+        const priceHtml = book.price === 0
+            ? `<span class="free">FREE</span>`
+            : `₹${book.price} <small>/ book</small>`;
+
+        return `
+        <div class="book-card fade-up" data-tag="${book.tag}">
+            <div class="book-cover">
+                <img src="${book.img}" alt="${book.title}"
+                    onerror="this.src='https://via.placeholder.com/230x200/241748/a78bfa?text=📚'">
+                <span class="book-tag ${tagClass}">${tagLabel}</span>
+            </div>
+            <div class="book-info">
+                <h4>${book.title}</h4>
+                <p class="book-author">by ${book.author}</p>
+                <p class="book-rating">
+                    <span class="star">★</span> ${book.rating} (${book.reviews} reviews)
+                </p>
+                <div class="book-bottom">
+                    <div class="book-price">${priceHtml}</div>
+                    <div class="book-actions">
+                        ${book.price === 0
+                            ? `<button class="dl-quick-btn" onclick='quickDownload(${JSON.stringify(book)})'>
+                                <i class="bx bx-download"></i>
+                               </button>`
+                            : `<button class="add-cart-btn" onclick='addToCart(${JSON.stringify(book)}, this)'>
+                                + Cart
+                               </button>`
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }).join("");
+
+    // Animate cards
+    document.querySelectorAll(".book-card.fade-up").forEach(el => {
+        setTimeout(() => el.classList.add("visible"), 100);
+    });
+}
+
+// ================================
+// FILTER & SEARCH
+// ================================
+function filterBooks(tag, btn) {
+    currentFilter = tag;
+    document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    renderBooks(tag);
+}
+
+function searchBooks() {
+    const q = document.getElementById("searchInput").value.toLowerCase();
+    document.querySelectorAll(".book-card").forEach(c => {
+        const title = c.querySelector("h4")?.textContent.toLowerCase() || "";
+        c.style.display = title.includes(q) ? "block" : "none";
+    });
+}
+
+// ================================
+// CART
+// ================================
+function toggleCart() {
+    document.getElementById("cartSidebar").classList.toggle("open");
+    document.getElementById("cartOverlay").classList.toggle("open");
+    renderCart();
+}
+
+function addToCart(book, btn) {
+    const ex = cart.find(i => i.title === book.title);
+    if (ex) {
+        ex.qty++;
+    } else {
+        cart.push({
+            name: book.title,
+            price: book.price,
+            img: book.img,
+            qty: 1
+        });
+    }
+    saveCart();
+    updateCartCount();
+    showToast("📚 " + book.title + " added to cart!", "success");
+    if (btn) {
+        btn.textContent = "✅ Added";
+        btn.classList.add("added");
+        setTimeout(() => {
+            btn.textContent = "+ Cart";
+            btn.classList.remove("added");
+        }, 1500);
+    }
+}
+
+function renderCart() {
+    const body = document.getElementById("cartBody");
+    const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+    document.getElementById("cartTotal").textContent = total === 0 ? "FREE" : "₹" + total;
+
+    if (!cart.length) {
+        body.innerHTML = `<div class="cart-empty">
+            <span>📚</span>
+            <p>Your cart is empty!</p>
+        </div>`;
+        return;
+    }
+
+    body.innerHTML = cart.map((item, i) => `
+        <div class="cart-item">
+            <img src="${item.img}" alt="${item.name}"
+                onerror="this.src='https://via.placeholder.com/56x72/241748/a78bfa?text=Book'">
+            <div class="ci-info">
+                <h4>${item.name}</h4>
+                <p>${item.price === 0 ? "🎁 FREE" : "₹" + item.price}</p>
+                <div class="ci-bottom">
+                    <div class="qty-ctrl">
+                        <button class="qty-btn" onclick="changeQty(${i},-1)">−</button>
+                        <span class="qty-n">${item.qty}</span>
+                        <button class="qty-btn" onclick="changeQty(${i},1)">+</button>
+                    </div>
+                    <button class="rm-btn" onclick="removeItem(${i})">🗑</button>
+                </div>
+            </div>
+        </div>`).join("");
+}
+
+function changeQty(i, d) {
+    cart[i].qty += d;
+    if (cart[i].qty <= 0) cart.splice(i, 1);
+    saveCart(); renderCart(); updateCartCount();
+}
+
+function removeItem(i) {
+    const n = cart[i].name;
+    cart.splice(i, 1);
+    saveCart(); renderCart(); updateCartCount();
+    showToast("🗑 " + n + " removed", "info");
+}
+
+function saveCart() {
+    localStorage.setItem("ebookCart", JSON.stringify(cart));
+}
+
+function updateCartCount() {
+    const total = cart.reduce((s, i) => s + i.qty, 0);
+    const el = document.getElementById("cartCount");
+    if (el) {
+        el.textContent = total;
+        el.style.display = total > 0 ? "flex" : "none";
+    }
+}
+
+// ================================
+// CHECKOUT
+// ================================
+function openCheckout() {
+    if (!cart.length) { showToast("🛒 Cart is empty!", "error"); return; }
+    const items = cart.map(i => `
+        <div class="summary-row">
+            <span>${i.name} × ${i.qty}</span>
+            <span>${i.price === 0 ? "FREE" : "₹" + (i.price * i.qty)}</span>
+        </div>`).join("");
+    const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+    document.getElementById("summaryItems").innerHTML = items;
+    document.getElementById("summaryTotal").textContent = total === 0 ? "FREE" : "₹" + total;
+    document.getElementById("cartSidebar").classList.remove("open");
+    document.getElementById("cartOverlay").classList.remove("open");
+    openModal("payModal");
+}
+
+function switchPay(type, btn) {
+    document.querySelectorAll(".pay-tab").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".pay-content").forEach(c => c.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("pay-" + type).classList.add("active");
+}
+
+// ================================
+// PROCESS PAYMENT & SAVE TO MONGODB
+// ================================
+async function processPayment(method) {
+    if (method === "Credit/Debit Card") {
+        const num = document.getElementById("cardNum").value.replace(/\s/g, "");
+        const name = document.getElementById("cardName").value;
+        if (num.length < 16 || !name) { showToast("❌ Fill card details!", "error"); return; }
+    }
+    if (method === "Net Banking") {
+        if (!document.getElementById("bankSelect").value) {
+            showToast("❌ Select a bank!", "error"); return;
+        }
+    }
+    if (method === "UPI") {
+        const upi = document.getElementById("upiId").value;
+        if (!upi) { showToast("❌ Enter UPI ID!", "error"); return; }
+    }
+    if (method === "Cash on Delivery") {
+        const email = document.getElementById("codEmail").value;
+        if (!email || !email.includes("@")) {
+            showToast("❌ Enter valid email!", "error"); return;
+        }
+    }
+
+    const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+    const orderId = "ORD" + Math.floor(Math.random() * 900000 + 100000);
+
+    // ✅ Save order to MongoDB
+    try {
+        await fetch(`${API}/api/orders`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                books: cart.map(i => ({
+                    title: i.name,
+                    price: i.price,
+                    qty: i.qty
+                })),
+                totalAmount: total,
+                paymentMethod: method,
+                orderId: orderId,
+                status: "completed"
+            })
+        });
+        showToast("✅ Order saved to database!", "success");
+    } catch (error) {
+        console.log("Could not save order:", error);
+    }
+
+    // Add to downloads
+    cart.forEach(item => {
+        const book = books.find(b => b.title === item.name);
+        if (book && !downloads.find(d => d.title === book.title)) {
+            downloads.push({ ...book, purchasedAt: new Date().toLocaleDateString() });
+        }
+    });
+    saveDownloads();
+    updateDlCount();
+    renderDownloadSection();
+
+    // Show success
+    document.getElementById("successDetails").innerHTML = `
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span>Order ID</span>
+            <span style="color:#a78bfa;font-weight:700">${orderId}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span>Payment</span>
+            <span style="color:#10b981;font-weight:700">${method}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span>Books</span>
+            <span>${cart.length} item(s)</span>
+        </div>
+        <div style="display:flex;justify-content:space-between">
+            <span>Total Paid</span>
+            <span style="color:#a78bfa;font-weight:700">
+                ${total === 0 ? "FREE" : "₹" + total}
+            </span>
+        </div>`;
+
+    closeModal("payModal");
+    openModal("successModal");
+    cart = []; saveCart(); renderCart(); updateCartCount();
+}
+
+// ================================
+// DOWNLOADS
+// ================================
+function saveDownloads() {
+    localStorage.setItem("ebookDownloads", JSON.stringify(downloads));
+}
+
+function updateDlCount() {
+    const el = document.getElementById("dlCount");
+    if (!el) return;
+    if (downloads.length > 0) {
+        el.textContent = downloads.length;
+        el.style.display = "flex";
+    } else {
+        el.style.display = "none";
+    }
+}
+
+function quickDownload(book) {
+    if (!downloads.find(d => d.title === book.title)) {
+        downloads.push({ ...book, purchasedAt: new Date().toLocaleDateString() });
+        saveDownloads();
+        updateDlCount();
+        renderDownloadSection();
+        showToast("📥 " + book.title + " added to downloads!", "success");
+    }
+    triggerDownload(book);
+}
+
+function triggerDownload(book) {
+    if (!book.downloadUrl || book.downloadUrl === "#") {
+        showToast("⚠️ Download link not available yet", "info");
+        return;
+    }
+    const a = document.createElement("a");
+    a.href = book.downloadUrl;
+    a.download = book.title + ".pdf";
+    a.target = "_blank";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    showToast("⬇️ Downloading: " + book.title, "success");
+}
+
+function renderDownloadSection() {
+    const grid = document.getElementById("dlGrid");
+    if (!grid) return;
+
+    const freeBooks = books.filter(b => b.price === 0);
+    const allDlBooks = [...downloads];
+    freeBooks.forEach(fb => {
+        if (!allDlBooks.find(d => d.title === fb.title)) allDlBooks.push(fb);
+    });
+
+    if (!allDlBooks.length) {
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--muted)">
+            <span style="font-size:48px;display:block;margin-bottom:12px">📭</span>
+            <p>No books available for download yet</p>
+        </div>`;
+        return;
+    }
+
+    grid.innerHTML = allDlBooks.map(book => {
+        const isPurchased = downloads.find(d => d.title === book.title);
+        const canDownload = book.price === 0 || isPurchased;
+        return `
+        <div class="dl-card fade-up">
+            <img class="dl-cover" src="${book.img}" alt="${book.title}"
+                onerror="this.src='https://via.placeholder.com/56x72/241748/a78bfa?text=📚'">
+            <div class="dl-info">
+                <h4>${book.title}</h4>
+                <p>by ${book.author}</p>
+                ${canDownload
+                    ? `<button class="dl-btn" onclick='triggerDownload(${JSON.stringify(book)})'>
+                        <i class="bx bx-download"></i> Download PDF
+                       </button>`
+                    : `<span class="dl-locked">🔒 Purchase to unlock</span>`
+                }
+                ${isPurchased
+                    ? `<p style="font-size:11px;color:#10b981;margin-top:8px">✅ Purchased</p>`
+                    : ""
+                }
+            </div>
+        </div>`;
+    }).join("");
+}
+
+function openDownloads() {
+    const list = document.getElementById("downloadList");
+    const none = document.getElementById("noDownloads");
+    if (!downloads.length) {
+        list.innerHTML = "";
+        none.style.display = "block";
+    } else {
+        none.style.display = "none";
+        list.innerHTML = downloads.map(book => `
+            <div class="dm-item">
+                <img src="${book.img}" alt="${book.title}"
+                    onerror="this.src='https://via.placeholder.com/44x56/241748/a78bfa?text=📚'">
+                <div class="dm-item-info">
+                    <h4>${book.title}</h4>
+                    <p>Purchased: ${book.purchasedAt || "N/A"}</p>
+                </div>
+                <button class="dm-dl-btn" onclick='triggerDownload(${JSON.stringify(book)})'>
+                    <i class="bx bx-download"></i> PDF
+                </button>
+            </div>`).join("");
+    }
+    openModal("downloadModal");
+}
+
+// ================================
+// ADMIN - Save book to MongoDB
+// ================================
+function adminLogin() {
+    const pass = document.getElementById("adminPass").value;
+    if (pass === "admin123") {
+        adminLoggedIn = true;
+        document.getElementById("adminLogin").style.display = "none";
+        document.getElementById("adminForm").style.display = "block";
+        showToast("🔓 Admin access granted!", "success");
+    } else {
+        showToast("❌ Wrong password!", "error");
+        document.getElementById("adminPass").value = "";
+    }
+}
+
+async function addNewBook() {
+    const title = document.getElementById("newTitle").value.trim();
+    const author = document.getElementById("newAuthor").value.trim();
+    const imgInput = document.getElementById("newImg").value.trim();
+    const price = parseInt(document.getElementById("newPrice").value) || 0;
+    const tag = document.getElementById("newTag").value;
+    const rating = parseFloat(document.getElementById("newRating").value) || 4.5;
+    const downloadUrl = document.getElementById("newDownload").value.trim() || "#";
+
+    if (!title || !author) {
+        showToast("❌ Title and Author are required!", "error");
+        return;
+    }
+
+    const newBook = {
+        title,
+        author,
+        price,
+        tag,
+        rating: rating.toFixed(1),
+        reviews: "0",
+        img: imgInput || "https://via.placeholder.com/230x200/241748/a78bfa?text=📚",
+        downloadUrl,
+        adminAdded: true
+    };
+
+    // ✅ Save to MongoDB
+    try {
+        const res = await fetch(`${API}/api/books`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newBook)
+        });
+        const data = await res.json();
+        showToast("✅ Book saved to database!", "success");
+    } catch (error) {
+        showToast("⚠️ Saved locally only!", "info");
+    }
+
+    // Reload books
+    await loadBooks();
+
+    // Clear form
+    ["newTitle","newAuthor","newImg","newPrice","newRating","newDownload"]
+        .forEach(id => document.getElementById(id).value = "");
+
+    closeModal("adminModal");
+
+    // Reset admin
+    setTimeout(() => {
+        document.getElementById("adminLogin").style.display = "block";
+        document.getElementById("adminForm").style.display = "none";
+        document.getElementById("adminPass").value = "";
+        adminLoggedIn = false;
+    }, 500);
+}
+
+// ================================
+// CONTACT
+// ================================
+function sendContact() {
+    const name = document.getElementById("cName").value.trim();
+    const email = document.getElementById("cEmail").value.trim();
+    const msg = document.getElementById("cMsg").value.trim();
+    if (!name || !email || !msg) {
+        showToast("❌ Fill all required fields!", "error");
+        return;
+    }
+    showToast("✅ Message sent! We will reply within 24 hours.", "success");
+    ["cName","cEmail","cPhone","cMsg"]
+        .forEach(id => document.getElementById(id).value = "");
+}
+
+// ================================
+// CARD FORMAT
+// ================================
+document.addEventListener("DOMContentLoaded", () => {
+    const cardNum = document.getElementById("cardNum");
+    const cardExp = document.getElementById("cardExp");
+    if (cardNum) {
+        cardNum.addEventListener("input", function() {
+            this.value = this.value.replace(/\D/g,"").replace(/(.{4})/g,"$1 ").trim();
+        });
+    }
+    if (cardExp) {
+        cardExp.addEventListener("input", function() {
+            this.value = this.value.replace(/\D/g,"").replace(/(\d{2})(\d)/,"$1/$2");
+        });
+    }
+});
+
+ 
