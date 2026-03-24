@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const path = require("path");
+const nodemailer = require("nodemailer"); // ✅ Added
 
 dotenv.config();
 
@@ -14,6 +15,64 @@ app.use(express.static(path.join(__dirname, "../")));
 mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log("✅ MongoDB Connected!"))
 .catch((err) => console.log("❌ Error:", err));
+
+// ✅ Nodemailer Setup
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+    },
+});
+
+// ✅ Email Function
+async function sendOrderConfirmationEmail(customerEmail, customerName, order) {
+    const bookList = order.books.map(b => `
+        <tr>
+            <td style="padding:8px; border:1px solid #ddd;">${b.title}</td>
+            <td style="padding:8px; border:1px solid #ddd;">${b.qty}</td>
+            <td style="padding:8px; border:1px solid #ddd;">₹${b.price}</td>
+            <td style="padding:8px; border:1px solid #ddd;">₹${b.price * b.qty}</td>
+        </tr>
+    `).join("");
+
+    const mailOptions = {
+        from: `"📚 eBook Store" <${process.env.EMAIL_USER}>`,
+        to: customerEmail,
+        subject: `✅ Order Confirmed! - Order ID: ${order.orderId}`,
+        html: `
+            <div style="font-family:Arial,sans-serif; max-width:600px; margin:auto; border:1px solid #ddd; border-radius:10px; padding:20px;">
+                <h2 style="color:#4CAF50; text-align:center;">📚 Order Confirmation</h2>
+                <p>Hi <strong>${customerName}</strong>,</p>
+                <p>Thank you for your purchase! Your order has been placed successfully.</p>
+                <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+                    <thead>
+                        <tr style="background:#f2f2f2;">
+                            <th style="padding:8px; border:1px solid #ddd;">Book</th>
+                            <th style="padding:8px; border:1px solid #ddd;">Qty</th>
+                            <th style="padding:8px; border:1px solid #ddd;">Price</th>
+                            <th style="padding:8px; border:1px solid #ddd;">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>${bookList}</tbody>
+                </table>
+                <br/>
+                <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+                    <tr><td style="padding:6px;"><strong>Order ID:</strong></td><td>${order.orderId}</td></tr>
+                    <tr><td style="padding:6px;"><strong>Payment Method:</strong></td><td>${order.paymentMethod}</td></tr>
+                    <tr><td style="padding:6px;"><strong>Total Amount:</strong></td><td><strong>₹${order.totalAmount}</strong></td></tr>
+                    <tr><td style="padding:6px;"><strong>Status:</strong></td><td style="color:green;"><strong>✅ Completed</strong></td></tr>
+                    <tr><td style="padding:6px;"><strong>Order Date:</strong></td><td>${new Date().toLocaleDateString("en-IN")}</td></tr>
+                </table>
+                <br/>
+                <p style="color:#888; font-size:13px; text-align:center;">Thank you for shopping with us! 🙏</p>
+            </div>
+        `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log("📧 Email sent to:", customerEmail);
+}
 
 const BookSchema = new mongoose.Schema({
     title:       { type: String, required: true },
@@ -33,6 +92,8 @@ const OrderSchema = new mongoose.Schema({
     totalAmount:   Number,
     paymentMethod: String,
     orderId:       String,
+    customerName:  String, // ✅ Added
+    customerEmail: String, // ✅ Added
     status:        { type: String, default: "completed" }
 }, { timestamps: true });
 const Order = mongoose.model("Order", OrderSchema);
@@ -79,11 +140,21 @@ app.delete("/api/books/:id", async (req, res) => {
     }
 });
 
+// ✅ Updated Order Route - Email bhi bhejega
 app.post("/api/orders", async (req, res) => {
     try {
         const order = new Order(req.body);
         await order.save();
-        res.status(201).json({ message: "✅ Order saved!", order });
+
+        if (req.body.customerEmail) {
+            await sendOrderConfirmationEmail(
+                req.body.customerEmail,
+                req.body.customerName || "Customer",
+                order
+            );
+        }
+
+        res.status(201).json({ message: "✅ Order saved & Email sent!", order });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
