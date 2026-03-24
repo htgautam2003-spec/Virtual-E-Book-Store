@@ -1,7 +1,7 @@
 // ================================
 // API URL - Backend Connection
 // ================================
-const API = "http://localhost:5000";
+const API = "https://virtual-e-book-store.onrender.com";
 
 // ================================
 // STATE

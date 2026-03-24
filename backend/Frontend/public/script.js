@@ -5,7 +5,7 @@ async function loadBooks() {
   let html = "<ul>";
   books.forEach(book => {
     html += `<li><strong>${book.title}</strong> - ${book.author} 
-    [<a href="${book.filePath}" target="_blank">Read</a>]</li>`;
+    [<a href="${book.downloadUrl}" target="_blank">Read</a>]</li>`;
   });
   html += "</ul>";
 
