@@ -332,4 +332,3 @@ footer{background:var(--dark3);border-top:1px solid rgba(124,58,237,0.15);paddin
   .cart-sidebar{width:100vw;}
   .footer-grid{grid-template-columns:1fr;}
   .pay-row{grid-template-columns:1fr;}
-}
