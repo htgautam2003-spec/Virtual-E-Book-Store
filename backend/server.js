@@ -16,18 +16,19 @@ mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log("✅ MongoDB Connected!"))
 .catch((err) => console.log("❌ Error:", err));
 
-// ✅ Nodemailer Setup - Fixed
+// ✅ Nodemailer Setup - IPv4 Force
 const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
+    port: 587,
+    secure: false,
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
     },
     tls: {
         rejectUnauthorized: false
-    }
+    },
+    family: 4
 });
 
 // ✅ Email Function
@@ -203,3 +204,6 @@ app.listen(PORT, () => {
     console.log("📦 Orders: http://localhost:" + PORT + "/api/orders");
     console.log("👤 Users:  http://localhost:" + PORT + "/api/users");
 });
+
+
+ 
