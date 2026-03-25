@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const path = require("path");
-const nodemailer = require("nodemailer"); // ✅ Added
+const nodemailer = require("nodemailer");
 
 dotenv.config();
 
@@ -16,13 +16,18 @@ mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log("✅ MongoDB Connected!"))
 .catch((err) => console.log("❌ Error:", err));
 
-// ✅ Nodemailer Setup
+// ✅ Nodemailer Setup - Fixed
 const transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
     },
+    tls: {
+        rejectUnauthorized: false
+    }
 });
 
 // ✅ Email Function
@@ -92,8 +97,8 @@ const OrderSchema = new mongoose.Schema({
     totalAmount:   Number,
     paymentMethod: String,
     orderId:       String,
-    customerName:  String, // ✅ Added
-    customerEmail: String, // ✅ Added
+    customerName:  String,
+    customerEmail: String,
     status:        { type: String, default: "completed" }
 }, { timestamps: true });
 const Order = mongoose.model("Order", OrderSchema);
@@ -140,7 +145,6 @@ app.delete("/api/books/:id", async (req, res) => {
     }
 });
 
-// ✅ Updated Order Route - Email bhi bhejega
 app.post("/api/orders", async (req, res) => {
     try {
         const order = new Order(req.body);
