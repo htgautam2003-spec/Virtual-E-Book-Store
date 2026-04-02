@@ -378,6 +378,7 @@
         <div class="pay-field"><label>Expiry</label><input type="text" id="cardExp" placeholder="MM/YY" maxlength="5"></div>
         <div class="pay-field"><label>CVV</label><input type="password" id="cardCvv" placeholder="•••" maxlength="3"></div>
       </div>
+
       <button class="pay-btn" onclick="processPayment('Credit/Debit Card')">💳 Pay Now</button>
     </div>
     <div class="pay-content" id="pay-netbank">
@@ -889,7 +890,7 @@
     <p>Made with 💜 for Students</p>
   </div>
 </footer>
-
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script src="my.js"></script>
 
 <!-- ══════════════════════════════════════════
@@ -1063,5 +1064,137 @@
     else updateNavForGuest();
   })();
 </script>
+<script>
+// ✅ RAZORPAY PAYMENT INTEGRATION
+async function processPayment(method) {
+  const name  = document.getElementById('customerName').value.trim();
+  const email = document.getElementById('customerEmail').value.trim();
+
+  // Validation
+  if (!name)  { alert('Please enter your name!');  return; }
+  if (!email) { alert('Please enter your email!'); return; }
+
+  // Get total amount
+  const totalText = document.getElementById('summaryTotal').textContent;
+  const amount = parseInt(totalText.replace('₹', '').replace(',', '').trim());
+
+  if (!amount || amount <= 0) { alert('Cart is empty!'); return; }
+
+  // COD - No Razorpay needed
+  if (method === 'Cash on Delivery') {
+    await saveOrder(method, 'COD-' + Date.now(), name, email);
+    return;
+  }
+
+  try {
+    // Step 1: Create Order from Backend
+    const res = await fetch('/api/payment/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount })
+    });
+
+    const data = await res.json();
+    if (!data.success) { alert('Payment failed! Try again.'); return; }
+
+    // Step 2: Open Razorpay Checkout Popup
+    const options = {
+      key: 'rzp_live_SYKdilpCIN2G9A',
+      amount: data.order.amount,
+      currency: 'INR',
+      name: 'Virtual E-Book Store',
+      description: 'Book Purchase',
+      order_id: data.order.id,
+
+      // Step 3: After Payment Success
+      handler: async function(response) {
+        const verify = await fetch('/api/payment/verify-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            razorpay_order_id:   response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature:  response.razorpay_signature
+          })
+        });
+
+        const verifyData = await verify.json();
+        if (verifyData.success) {
+          await saveOrder(method, response.razorpay_payment_id, name, email);
+        } else {
+          alert('Payment verification failed! Contact support.');
+        }
+      },
+
+      prefill: { name: name, email: email },
+      theme:   { color: '#7c3aed' },
+      modal: {
+        ondismiss: function() {
+          alert('Payment cancelled!');
+        }
+      }
+    };
+
+    const rzp = new Razorpay(options);
+    rzp.open();
+    closeModal('payModal');
+
+  } catch (error) {
+    console.error('Payment error:', error);
+    alert('Something went wrong! Please try again.');
+  }
+}
+
+// ✅ Save Order to MongoDB
+async function saveOrder(method, paymentId, name, email) {
+  try {
+    const cartItems = JSON.parse(localStorage.getItem('cart') || '[]');
+    const totalText = document.getElementById('summaryTotal').textContent;
+    const amount    = parseInt(totalText.replace('₹','').replace(',','').trim());
+
+    const orderData = {
+      books:         cartItems.map(item => ({
+        title: item.title,
+        price: item.price,
+        qty:   item.qty || 1
+      })),
+      totalAmount:   amount,
+      paymentMethod: method,
+      orderId:       paymentId,
+      customerName:  name,
+      customerEmail: email,
+      status:        'completed'
+    };
+
+    // Save to MongoDB
+    await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(orderData)
+    });
+
+    // Show Success
+    document.getElementById('successDetails').innerHTML = `
+      <b>Order ID:</b> ${paymentId}<br>
+      <b>Name:</b> ${name}<br>
+      <b>Email:</b> ${email}<br>
+      <b>Amount:</b> ₹${amount}<br>
+      <b>Payment:</b> ${method}<br>
+      <b>Status:</b> <span style="color:#10b981">✅ Completed</span>
+    `;
+
+    openModal('successModal');
+
+    // Clear Cart
+    localStorage.removeItem('cart');
+    if (typeof updateCart === 'function') updateCart();
+
+  } catch (error) {
+    console.error('Order save error:', error);
+    alert('Order placed but failed to save. Contact support!');
+  }
+}
+</script>
 </body>
 </html>
+ 
