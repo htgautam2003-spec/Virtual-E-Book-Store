@@ -4,6 +4,8 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const path = require("path");
 const nodemailer = require("nodemailer");
+const Razorpay = require("razorpay");  // ✅ NEW
+const crypto = require("crypto");       // ✅ NEW
 
 dotenv.config();
 
@@ -11,6 +13,12 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, "../")));
+
+// ✅ Razorpay Instance (Added after dotenv.config())
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
 
 mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log("✅ MongoDB Connected!"))
@@ -193,6 +201,43 @@ app.get("/api/users", async (req, res) => {
     }
 });
 
+// ✅ NEW - Razorpay Create Order
+app.post("/api/payment/create-order", async (req, res) => {
+    try {
+        const { amount } = req.body;
+        const options = {
+            amount: amount * 100, // paise
+            currency: "INR",
+            receipt: `receipt_${Date.now()}`,
+        };
+        const order = await razorpay.orders.create(options);
+        res.status(200).json({ success: true, order });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// ✅ NEW - Razorpay Verify Payment
+app.post("/api/payment/verify-payment", async (req, res) => {
+    try {
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+        const sign = razorpay_order_id + "|" + razorpay_payment_id;
+        const expectedSignature = crypto
+            .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+            .update(sign)
+            .digest("hex");
+
+        if (expectedSignature !== razorpay_signature) {
+            return res.status(400).json({ success: false, message: "❌ Invalid signature" });
+        }
+
+        res.status(200).json({ success: true, message: "✅ Payment verified!" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 app.use((req, res) => {
     res.status(404).json({ message: "❌ Route not found" });
 });
@@ -203,7 +248,5 @@ app.listen(PORT, () => {
     console.log("📚 Books:  http://localhost:" + PORT + "/api/books");
     console.log("📦 Orders: http://localhost:" + PORT + "/api/orders");
     console.log("👤 Users:  http://localhost:" + PORT + "/api/users");
+    console.log("💳 Payment: http://localhost:" + PORT + "/api/payment/create-order");
 });
-
-
- 
