@@ -359,12 +359,11 @@ function switchPay(type, btn) {
 }
 
 // ================================
-// PROCESS PAYMENT & SAVE TO MONGODB
+// PROCESS PAYMENT - RAZORPAY
 // ================================
 async function processPayment(method) {
 
-    // ✅ Customer details validation
-    const customerName = document.getElementById("customerName")?.value.trim();
+    const customerName  = document.getElementById("customerName")?.value.trim();
     const customerEmail = document.getElementById("customerEmail")?.value.trim();
 
     if (!customerName) {
@@ -374,31 +373,81 @@ async function processPayment(method) {
         showToast("❌ Please enter valid email!", "error"); return;
     }
 
-    if (method === "Credit/Debit Card") {
-        const num = document.getElementById("cardNum").value.replace(/\s/g, "");
-        const name = document.getElementById("cardName").value;
-        if (num.length < 16 || !name) { showToast("❌ Fill card details!", "error"); return; }
-    }
-    if (method === "Net Banking") {
-        if (!document.getElementById("bankSelect").value) {
-            showToast("❌ Select a bank!", "error"); return;
-        }
-    }
-    if (method === "UPI") {
-        const upi = document.getElementById("upiId").value;
-        if (!upi) { showToast("❌ Enter UPI ID!", "error"); return; }
-    }
+    const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+
+    // ✅ COD - No Razorpay needed
     if (method === "Cash on Delivery") {
-        const email = document.getElementById("codEmail").value;
-        if (!email || !email.includes("@")) {
+        const codEmail = document.getElementById("codEmail").value;
+        if (!codEmail || !codEmail.includes("@")) {
             showToast("❌ Enter valid email!", "error"); return;
         }
+        await saveRazorpayOrder(method, "COD-" + Date.now(), customerName, customerEmail, total);
+        return;
     }
 
-    const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
-    const orderId = "ORD" + Math.floor(Math.random() * 900000 + 100000);
+    try {
+        // Step 1: Create Razorpay Order from Backend
+        const res = await fetch(`${API}/api/payment/create-order`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ amount: total })
+        });
 
-    // ✅ Save order to MongoDB + Send Email
+        const data = await res.json();
+        if (!data.success) { showToast("❌ Payment failed! Try again.", "error"); return; }
+
+        // Step 2: Open Razorpay Checkout Popup
+        const options = {
+            key: "rzp_live_SYKdilpCIN2G9A",
+            amount: data.order.amount,
+            currency: "INR",
+            name: "Virtual E-Book Store",
+            description: "Book Purchase",
+            order_id: data.order.id,
+
+            // Step 3: After Payment Success
+            handler: async function(response) {
+                const verify = await fetch(`${API}/api/payment/verify-payment`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        razorpay_order_id:   response.razorpay_order_id,
+                        razorpay_payment_id: response.razorpay_payment_id,
+                        razorpay_signature:  response.razorpay_signature
+                    })
+                });
+
+                const verifyData = await verify.json();
+                if (verifyData.success) {
+                    await saveRazorpayOrder(method, response.razorpay_payment_id, customerName, customerEmail, total);
+                } else {
+                    showToast("❌ Payment verification failed!", "error");
+                }
+            },
+
+            prefill: { name: customerName, email: customerEmail },
+            theme:   { color: "#7c3aed" },
+            modal: {
+                ondismiss: function() {
+                    showToast("❌ Payment cancelled!", "error");
+                }
+            }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.open();
+        closeModal("payModal");
+
+    } catch (error) {
+        console.error("Payment error:", error);
+        showToast("❌ Something went wrong! Try again.", "error");
+    }
+}
+
+// ================================
+// SAVE ORDER AFTER RAZORPAY
+// ================================
+async function saveRazorpayOrder(method, paymentId, customerName, customerEmail, total) {
     try {
         await fetch(`${API}/api/orders`, {
             method: "POST",
@@ -407,64 +456,70 @@ async function processPayment(method) {
                 books: cart.map(i => ({
                     title: i.name,
                     price: i.price,
-                    qty: i.qty
+                    qty:   i.qty
                 })),
-                totalAmount: total,
+                totalAmount:   total,
                 paymentMethod: method,
-                orderId: orderId,
-                status: "completed",
-                customerName: customerName,
+                orderId:       paymentId,
+                status:        "completed",
+                customerName:  customerName,
                 customerEmail: customerEmail
             })
         });
+
         showToast("✅ Order saved! Email sent to " + customerEmail, "success");
+
+        // Add to downloads
+        cart.forEach(item => {
+            const book = books.find(b => b.title === item.name);
+            if (book && !downloads.find(d => d.title === book.title)) {
+                downloads.push({ ...book, purchasedAt: new Date().toLocaleDateString() });
+            }
+        });
+        saveDownloads();
+        updateDlCount();
+        renderDownloadSection();
+
+        // Show Success Modal
+        document.getElementById("successDetails").innerHTML = `
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+                <span>Order ID</span>
+                <span style="color:#a78bfa;font-weight:700">${paymentId}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+                <span>Customer</span>
+                <span style="color:#10b981;font-weight:700">${customerName}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+                <span>Email</span>
+                <span style="color:#a78bfa;font-weight:700">${customerEmail}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+                <span>Payment</span>
+                <span style="color:#10b981;font-weight:700">${method}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+                <span>Books</span>
+                <span>${cart.length} item(s)</span>
+            </div>
+            <div style="display:flex;justify-content:space-between">
+                <span>Total Paid</span>
+                <span style="color:#a78bfa;font-weight:700">
+                    ${total === 0 ? "FREE" : "₹" + total}
+                </span>
+            </div>`;
+
+        closeModal("payModal");
+        openModal("successModal");
+        cart = [];
+        saveCart();
+        renderCart();
+        updateCartCount();
+
     } catch (error) {
-        console.log("Could not save order:", error);
+        console.error("Order save error:", error);
+        showToast("❌ Order save failed! Contact support.", "error");
     }
-
-    // Add to downloads
-    cart.forEach(item => {
-        const book = books.find(b => b.title === item.name);
-        if (book && !downloads.find(d => d.title === book.title)) {
-            downloads.push({ ...book, purchasedAt: new Date().toLocaleDateString() });
-        }
-    });
-    saveDownloads();
-    updateDlCount();
-    renderDownloadSection();
-
-    // Show success
-    document.getElementById("successDetails").innerHTML = `
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-            <span>Order ID</span>
-            <span style="color:#a78bfa;font-weight:700">${orderId}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-            <span>Customer</span>
-            <span style="color:#10b981;font-weight:700">${customerName}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-            <span>Email</span>
-            <span style="color:#a78bfa;font-weight:700">${customerEmail}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-            <span>Payment</span>
-            <span style="color:#10b981;font-weight:700">${method}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-            <span>Books</span>
-            <span>${cart.length} item(s)</span>
-        </div>
-        <div style="display:flex;justify-content:space-between">
-            <span>Total Paid</span>
-            <span style="color:#a78bfa;font-weight:700">
-                ${total === 0 ? "FREE" : "₹" + total}
-            </span>
-        </div>`;
-
-    closeModal("payModal");
-    openModal("successModal");
-    cart = []; saveCart(); renderCart(); updateCartCount();
 }
 
 // ================================
@@ -579,7 +634,7 @@ function openDownloads() {
 }
 
 // ================================
-// ADMIN - Save book to MongoDB
+// ADMIN
 // ================================
 function adminLogin() {
     const pass = document.getElementById("adminPass").value;
@@ -595,12 +650,12 @@ function adminLogin() {
 }
 
 async function addNewBook() {
-    const title = document.getElementById("newTitle").value.trim();
-    const author = document.getElementById("newAuthor").value.trim();
-    const imgInput = document.getElementById("newImg").value.trim();
-    const price = parseInt(document.getElementById("newPrice").value) || 0;
-    const tag = document.getElementById("newTag").value;
-    const rating = parseFloat(document.getElementById("newRating").value) || 4.5;
+    const title       = document.getElementById("newTitle").value.trim();
+    const author      = document.getElementById("newAuthor").value.trim();
+    const imgInput    = document.getElementById("newImg").value.trim();
+    const price       = parseInt(document.getElementById("newPrice").value) || 0;
+    const tag         = document.getElementById("newTag").value;
+    const rating      = parseFloat(document.getElementById("newRating").value) || 4.5;
     const downloadUrl = document.getElementById("newDownload").value.trim() || "#";
 
     if (!title || !author) {
@@ -647,9 +702,9 @@ async function addNewBook() {
 // CONTACT
 // ================================
 function sendContact() {
-    const name = document.getElementById("cName").value.trim();
+    const name  = document.getElementById("cName").value.trim();
     const email = document.getElementById("cEmail").value.trim();
-    const msg = document.getElementById("cMsg").value.trim();
+    const msg   = document.getElementById("cMsg").value.trim();
     if (!name || !email || !msg) {
         showToast("❌ Fill all required fields!", "error");
         return;
@@ -676,3 +731,5 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 });
+
+ 
