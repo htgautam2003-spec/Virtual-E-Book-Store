@@ -4,6 +4,19 @@
 const API = "https://virtual-e-book-store.onrender.com";
 
 // ================================
+// ✅ EMAILJS CONFIGURATION
+// Replace these 3 values with your actual EmailJS credentials
+// Get them from: https://www.emailjs.com/
+// ================================
+const EMAILJS_PUBLIC_KEY   = "YOUR_PUBLIC_KEY";    // Account → General
+const EMAILJS_SERVICE_ID   = "YOUR_SERVICE_ID";    // Email Services
+const EMAILJS_CONTACT_TID  = "YOUR_CONTACT_TEMPLATE_ID";  // Template for Contact Form
+const EMAILJS_ORDER_TID    = "YOUR_ORDER_TEMPLATE_ID";    // Template for Order Confirmation
+
+// ✅ Initialize EmailJS
+emailjs.init(EMAILJS_PUBLIC_KEY);
+
+// ================================
 // STATE
 // ================================
 let cart = JSON.parse(localStorage.getItem("ebookCart") || "[]");
@@ -445,6 +458,34 @@ async function processPayment(method) {
 }
 
 // ================================
+// ✅ SEND ORDER CONFIRMATION EMAIL via EmailJS
+// ================================
+async function sendOrderConfirmationEmail(customerName, customerEmail, orderId, method, total, cartItems) {
+    const bookList = cartItems.map(i =>
+        `${i.name} x${i.qty} — ${i.price === 0 ? "FREE" : "₹" + (i.price * i.qty)}`
+    ).join("\n");
+
+    try {
+        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_ORDER_TID, {
+            customer_name:    customerName,
+            customer_email:   customerEmail,
+            order_id:         orderId,
+            payment_method:   method,
+            total_amount:     total === 0 ? "FREE" : "₹" + total,
+            book_list:        bookList,
+            order_date:       new Date().toLocaleDateString("en-IN", {
+                                  day: "2-digit", month: "long", year: "numeric"
+                              }),
+            support_email:    "virtualebook@gmail.com"
+        });
+        console.log("✅ Order confirmation email sent to:", customerEmail);
+    } catch (err) {
+        // Email sending failed silently — order still succeeds
+        console.error("⚠️ Order confirmation email failed:", err);
+    }
+}
+
+// ================================
 // SAVE ORDER AFTER RAZORPAY
 // ================================
 async function saveRazorpayOrder(method, paymentId, customerName, customerEmail, total) {
@@ -467,7 +508,10 @@ async function saveRazorpayOrder(method, paymentId, customerName, customerEmail,
             })
         });
 
-        showToast("✅ Order saved! Email sent to " + customerEmail, "success");
+        // ✅ Send real order confirmation email to customer
+        await sendOrderConfirmationEmail(customerName, customerEmail, paymentId, method, total, [...cart]);
+
+        showToast("✅ Order placed! Confirmation email sent to " + customerEmail, "success");
 
         // Add to downloads
         cart.forEach(item => {
@@ -480,7 +524,7 @@ async function saveRazorpayOrder(method, paymentId, customerName, customerEmail,
         updateDlCount();
         renderDownloadSection();
 
-        // Show Success Modal
+        // ✅ Show Success Modal with email confirmation message
         document.getElementById("successDetails").innerHTML = `
             <div style="display:flex;justify-content:space-between;margin-bottom:8px">
                 <span>Order ID</span>
@@ -502,11 +546,15 @@ async function saveRazorpayOrder(method, paymentId, customerName, customerEmail,
                 <span>Books</span>
                 <span>${cart.length} item(s)</span>
             </div>
-            <div style="display:flex;justify-content:space-between">
+            <div style="display:flex;justify-content:space-between;margin-bottom:12px">
                 <span>Total Paid</span>
                 <span style="color:#a78bfa;font-weight:700">
                     ${total === 0 ? "FREE" : "₹" + total}
                 </span>
+            </div>
+            <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px;font-size:13px;color:#34d399;">
+                <span style="font-size:16px">📧</span>
+                <span>Order confirmation email has been sent to <strong>${customerEmail}</strong></span>
             </div>`;
 
         closeModal("payModal");
@@ -699,19 +747,53 @@ async function addNewBook() {
 }
 
 // ================================
-// CONTACT
+// ✅ CONTACT FORM — Real Email via EmailJS
 // ================================
 function sendContact() {
     const name  = document.getElementById("cName").value.trim();
     const email = document.getElementById("cEmail").value.trim();
+    const phone = document.getElementById("cPhone").value.trim();
     const msg   = document.getElementById("cMsg").value.trim();
-    if (!name || !email || !msg) {
-        showToast("❌ Fill all required fields!", "error");
-        return;
+    const btn   = document.querySelector(".submit-btn");
+
+    // Validation
+    if (!name) {
+        showToast("❌ Please enter your name!", "error"); return;
     }
-    showToast("✅ Message sent! We will reply within 24 hours.", "success");
-    ["cName","cEmail","cPhone","cMsg"]
-        .forEach(id => document.getElementById(id).value = "");
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showToast("❌ Please enter a valid email!", "error"); return;
+    }
+    if (!msg) {
+        showToast("❌ Please write a message!", "error"); return;
+    }
+
+    // Show sending state
+    btn.textContent = "⏳ Sending...";
+    btn.disabled = true;
+
+    // ✅ Send real email via EmailJS
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_CONTACT_TID, {
+        from_name:  name,
+        from_email: email,
+        phone:      phone || "Not provided",
+        message:    msg,
+        to_email:   "virtualebook@gmail.com"
+    })
+    .then(function() {
+        // ✅ Success
+        showToast("✅ Message sent! We'll reply within 24 hours.", "success");
+        ["cName", "cEmail", "cPhone", "cMsg"]
+            .forEach(id => document.getElementById(id).value = "");
+        btn.textContent = "📨 Send Message";
+        btn.disabled = false;
+    })
+    .catch(function(err) {
+        // ❌ Failed
+        console.error("Contact email error:", err);
+        showToast("❌ Failed to send! Please email us directly at virtualebook@gmail.com", "error");
+        btn.textContent = "📨 Send Message";
+        btn.disabled = false;
+    });
 }
 
 // ================================
@@ -731,5 +813,3 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 });
-
- 
