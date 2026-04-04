@@ -465,35 +465,6 @@ async function sendOrderConfirmationEmail(customerName, customerEmail, orderId, 
         `${i.name} x${i.qty} — ${i.price === 0 ? "FREE" : "₹" + (i.price * i.qty)}`
     ).join("\n");
 
-    const templateParams = {
-        customer_name:  customerName,
-        customer_email: customerEmail,
-        order_id:       orderId,
-        payment_method: method,
-        total_amount:   total === 0 ? "FREE" : "₹" + total,
-        book_list:      bookList,
-        order_date:     new Date().toLocaleDateString("en-IN", {
-                            day: "2-digit", month: "long", year: "numeric"
-                        }),
-        support_email:  "virtualebook@gmail.com"
-    };
-
-    console.log("📧 Sending order email to:", customerEmail);
-    console.log("📋 Template params:", templateParams);
-
-    try {
-        const result = await emailjs.send(
-            EMAILJS_SERVICE_ID,
-            EMAILJS_ORDER_TID,
-            templateParams
-        );
-        console.log("✅ Order email sent successfully!", result.status, result.text);
-        showToast("📧 Order confirmation email sent to " + customerEmail, "success");
-    } catch (err) {
-        console.error("❌ Order email FAILED:", err);
-        showToast("⚠️ Email sending failed: " + err.text, "error");
-    }
-}
     try {
         await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_ORDER_TID, {
             customer_name:    customerName,
