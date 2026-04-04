@@ -8,13 +8,11 @@
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
   <link rel="stylesheet" href="my.css">
   <style>
-    /* ── AUTH BUTTONS IN NAVBAR ── */
     .auth-btns {
       display: flex;
       align-items: center;
       gap: 10px;
     }
-
     .btn-login {
       background: transparent;
       border: 1.5px solid rgba(124, 58, 237, 0.55);
@@ -38,7 +36,6 @@
       transform: translateY(-1px);
       box-shadow: 0 4px 15px rgba(124, 58, 237, 0.25);
     }
-
     .btn-signup {
       background: linear-gradient(135deg, #7c3aed, #a855f7);
       border: none;
@@ -61,8 +58,6 @@
       transform: translateY(-1px);
       box-shadow: 0 6px 20px rgba(124, 58, 237, 0.55);
     }
-
-    /* User Avatar (shown after login) */
     .user-avatar-btn {
       display: none;
       align-items: center;
@@ -86,8 +81,6 @@
       display: flex; align-items: center; justify-content: center;
       font-size: 13px; font-weight: 700; color: #fff;
     }
-
-    /* ── AUTH MODAL ── */
     .auth-modal-overlay {
       position: fixed; inset: 0;
       background: rgba(5, 3, 15, 0.82);
@@ -99,10 +92,8 @@
       animation: fadeIn 0.2s ease;
     }
     .auth-modal-overlay.open { display: flex; }
-
     @keyframes fadeIn { from{opacity:0} to{opacity:1} }
     @keyframes slideUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
-
     .auth-modal {
       background: linear-gradient(145deg, #0e0820, #130d2a);
       border: 1px solid rgba(124, 58, 237, 0.25);
@@ -114,7 +105,6 @@
       box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 50px rgba(124,58,237,0.12);
       animation: slideUp 0.3s ease;
     }
-
     .auth-modal .close-auth {
       position: absolute; top: 16px; right: 18px;
       background: rgba(255,255,255,0.06);
@@ -125,22 +115,13 @@
       transition: background 0.2s;
     }
     .auth-modal .close-auth:hover { background: rgba(255,255,255,0.12); color:#fff; }
-
-    .auth-modal .auth-logo {
-      text-align: center; margin-bottom: 24px;
-    }
-    .auth-modal .auth-logo span {
-      font-size: 36px; display: block; margin-bottom: 6px;
-    }
+    .auth-modal .auth-logo { text-align: center; margin-bottom: 24px; }
+    .auth-modal .auth-logo span { font-size: 36px; display: block; margin-bottom: 6px; }
     .auth-modal .auth-logo h2 {
       font-family: 'Cormorant Garamond', serif;
       font-size: 26px; color: #fff; margin: 0;
     }
-    .auth-modal .auth-logo p {
-      color: #8b7aaa; font-size: 14px; margin-top: 4px;
-    }
-
-    /* Tabs */
+    .auth-modal .auth-logo p { color: #8b7aaa; font-size: 14px; margin-top: 4px; }
     .auth-tabs {
       display: flex;
       background: rgba(124,58,237,0.08);
@@ -162,11 +143,7 @@
       color: #fff;
       box-shadow: 0 3px 10px rgba(124,58,237,0.4);
     }
-
-    /* Form fields */
-    .auth-field {
-      margin-bottom: 16px;
-    }
+    .auth-field { margin-bottom: 16px; }
     .auth-field label {
       display: block; font-size: 13px; color: #a89bc2;
       font-family: 'Outfit', sans-serif; font-weight: 500;
@@ -189,10 +166,7 @@
       box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
     }
     .auth-field input::placeholder { color: #5a4d72; }
-
-    .auth-field .input-wrap {
-      position: relative;
-    }
+    .auth-field .input-wrap { position: relative; }
     .auth-field .input-wrap input { padding-right: 42px; }
     .auth-field .toggle-pass {
       position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
@@ -200,16 +174,12 @@
       font-size: 18px; padding: 0; line-height: 1;
     }
     .auth-field .toggle-pass:hover { color: #a78bfa; }
-
-    .forgot-link {
-      text-align: right; margin-top: -8px; margin-bottom: 16px;
-    }
+    .forgot-link { text-align: right; margin-top: -8px; margin-bottom: 16px; }
     .forgot-link a {
       font-size: 13px; color: #a78bfa;
       text-decoration: none; font-family: 'Outfit', sans-serif;
     }
     .forgot-link a:hover { text-decoration: underline; }
-
     .auth-submit-btn {
       width: 100%;
       background: linear-gradient(135deg, #7c3aed, #a855f7);
@@ -227,7 +197,6 @@
       transform: translateY(-1px);
       box-shadow: 0 6px 22px rgba(124,58,237,0.55);
     }
-
     .auth-divider {
       display: flex; align-items: center; gap: 10px;
       margin-bottom: 18px; color: #5a4d72;
@@ -237,10 +206,7 @@
       content: ''; flex: 1; height: 1px;
       background: rgba(124,58,237,0.18);
     }
-
-    .social-auth {
-      display: flex; gap: 10px; margin-bottom: 20px;
-    }
+    .social-auth { display: flex; gap: 10px; margin-bottom: 20px; }
     .social-auth-btn {
       flex: 1; padding: 10px 8px;
       background: rgba(255,255,255,0.04);
@@ -255,7 +221,6 @@
       border-color: rgba(124,58,237,0.4);
       color: #fff;
     }
-
     .auth-switch {
       text-align: center;
       font-family: 'Outfit', sans-serif;
@@ -266,8 +231,6 @@
       text-decoration: none;
     }
     .auth-switch a:hover { text-decoration: underline; }
-
-    /* Error / Success messages */
     .auth-msg {
       padding: 10px 14px;
       border-radius: 9px;
@@ -286,11 +249,7 @@
       border: 1px solid rgba(16,185,129,0.3);
       color: #34d399;
     }
-
-    /* Dropdown for logged-in user */
-    .user-dropdown {
-      position: relative; display: none;
-    }
+    .user-dropdown { position: relative; display: none; }
     .user-dropdown.visible { display: flex; }
     .dropdown-menu {
       position: absolute; top: calc(100% + 8px); right: 0;
@@ -315,11 +274,7 @@
     .dropdown-item:hover { background: rgba(124,58,237,0.15); color:#fff; }
     .dropdown-item.logout { color: #f87171; }
     .dropdown-item.logout:hover { background: rgba(239,68,68,0.1); }
-    .dropdown-divider {
-      height: 1px; background: rgba(124,58,237,0.15); margin: 6px 0;
-    }
-
-    /* Responsive */
+    .dropdown-divider { height: 1px; background: rgba(124,58,237,0.15); margin: 6px 0; }
     @media (max-width: 768px) {
       .auth-btns { gap: 7px; }
       .btn-login, .btn-signup { padding: 7px 13px; font-size: 13px; }
@@ -366,44 +321,25 @@
       <div class="summary-row summary-total"><span>Total</span><span id="summaryTotal">₹0</span></div>
     </div>
     <div class="pay-tabs">
-      <button class="pay-tab active" onclick="switchPay('card',this)"><i class='bx bx-credit-card'></i>Card</button>
-      <button class="pay-tab" onclick="switchPay('netbank',this)"><i class='bx bx-building-house'></i>Net Banking</button>
-      <button class="pay-tab" onclick="switchPay('upi',this)"><i class='bx bx-qr'></i>UPI</button>
-      <button class="pay-tab" onclick="switchPay('cod',this)"><i class='bx bx-package'></i>COD</button>
+      <button class="pay-tab active" onclick="switchPay('card',this)"><i class='bx bx-credit-card'></i> Card</button>
+      <button class="pay-tab" onclick="switchPay('upi',this)"><i class='bx bx-qr'></i> UPI</button>
+      <button class="pay-tab" onclick="switchPay('cod',this)"><i class='bx bx-package'></i> COD</button>
     </div>
     <div class="pay-content active" id="pay-card">
-      <div class="pay-field"><label>Card Number</label><input type="text" id="cardNum" placeholder="1234 5678 9012 3456" maxlength="19"></div>
-      <div class="pay-field"><label>Card Holder Name</label><input type="text" id="cardName" placeholder="Your Full Name"></div>
-      <div class="pay-row">
-        <div class="pay-field"><label>Expiry</label><input type="text" id="cardExp" placeholder="MM/YY" maxlength="5"></div>
-        <div class="pay-field"><label>CVV</label><input type="password" id="cardCvv" placeholder="•••" maxlength="3"></div>
-      </div>
-
-      <button class="pay-btn" onclick="processPayment('Credit/Debit Card')">💳 Pay Now</button>
-    </div>
-    <div class="pay-content" id="pay-netbank">
-      <div class="pay-field">
-        <label>Select Bank</label>
-        <select id="bankSelect" style="background:#1a1033;border:1.5px solid rgba(124,58,237,0.2);border-radius:10px;padding:12px 15px;color:white;width:100%;font-family:'Outfit',sans-serif;font-size:15px;outline:none;">
-          <option value="">-- Choose Bank --</option>
-          <option>State Bank of India (SBI)</option><option>HDFC Bank</option>
-          <option>ICICI Bank</option><option>Axis Bank</option>
-          <option>Punjab National Bank</option><option>Bank of Baroda</option>
-          <option>Kotak Mahindra Bank</option>
-        </select>
-      </div>
-      <div class="pay-field"><label>User ID</label><input type="text" id="netUser" placeholder="Net Banking User ID"></div>
-      <div class="pay-field"><label>Password</label><input type="password" id="netPass" placeholder="Net Banking Password"></div>
-      <button class="pay-btn" onclick="processPayment('Net Banking')">🏦 Pay via Net Banking</button>
+      <p style="color:#a78bfa;font-size:13px;margin-bottom:16px;text-align:center">
+        💳 Secure payment powered by Razorpay
+      </p>
+      <button class="pay-btn" onclick="processPayment('Credit/Debit Card')">
+        💳 Pay Now with Razorpay
+      </button>
     </div>
     <div class="pay-content" id="pay-upi">
-      <div class="qr-box">
-        <div class="qr-img"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=virtualebook@paytm&pn=VirtualEBook&cu=INR" alt="QR"></div>
-        <p class="upi-id">UPI ID: <span>virtualebook@paytm</span></p>
-        <p style="color:#6b5b95;font-size:13px;margin-top:8px">Scan QR or enter UPI ID below</p>
-      </div>
-      <div class="pay-field"><label>Or Enter UPI ID</label><input type="text" id="upiId" placeholder="yourname@upi"></div>
-      <button class="pay-btn" onclick="processPayment('UPI')">📱 Pay via UPI</button>
+      <p style="color:#a78bfa;font-size:13px;margin-bottom:16px;text-align:center">
+        📱 Pay via UPI powered by Razorpay
+      </p>
+      <button class="pay-btn" onclick="processPayment('UPI')">
+        📱 Pay via UPI
+      </button>
     </div>
     <div class="pay-content" id="pay-cod">
       <div class="cod-box">
@@ -411,8 +347,13 @@
         <h3 style="font-family:'Cormorant Garamond',serif;margin-bottom:10px">Cash on Delivery</h3>
         <p>Pay when your book access code arrives in your email. Our team contacts you within 24 hours.</p>
       </div>
-      <div class="pay-field" style="margin-top:16px"><label>Confirm Email</label><input type="email" id="codEmail" placeholder="your@email.com"></div>
-      <button class="pay-btn" onclick="processPayment('Cash on Delivery')">📦 Confirm COD Order</button>
+      <div class="pay-field" style="margin-top:16px">
+        <label>Confirm Email</label>
+        <input type="email" id="codEmail" placeholder="your@email.com">
+      </div>
+      <button class="pay-btn" onclick="processPayment('Cash on Delivery')">
+        📦 Confirm COD Order
+      </button>
     </div>
   </div>
 </div>
@@ -453,7 +394,10 @@
     </div>
     <p>Add new books to the store</p>
     <div id="adminLogin">
-      <div class="pay-field" style="margin-top:16px"><label>Admin Password</label><input type="password" id="adminPass" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')adminLogin()"></div>
+      <div class="pay-field" style="margin-top:16px">
+        <label>Admin Password</label>
+        <input type="password" id="adminPass" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')adminLogin()">
+      </div>
       <button class="pay-btn" onclick="adminLogin()">🔓 Login as Admin</button>
       <p style="color:#6b5b95;font-size:13px;margin-top:10px;text-align:center">Default password: <span style="color:#a78bfa">admin123</span></p>
     </div>
@@ -485,20 +429,15 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════
-     AUTH MODAL (Login / Signup)
-═══════════════════════════════════════════ -->
+<!-- AUTH MODAL -->
 <div class="auth-modal-overlay" id="authModalOverlay">
   <div class="auth-modal">
     <button class="close-auth" onclick="closeAuthModal()">×</button>
-
     <div class="auth-logo">
       <span>📚</span>
       <h2>Virtual E-Book</h2>
       <p id="authSubtitle">Welcome back! Please sign in.</p>
     </div>
-
-    <!-- Tabs -->
     <div class="auth-tabs">
       <button class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">
         <i class='bx bx-log-in'></i> Login
@@ -507,22 +446,16 @@
         <i class='bx bx-user-plus'></i> Sign Up
       </button>
     </div>
-
-    <!-- Message -->
     <div class="auth-msg" id="authMsg"></div>
-
-    <!-- LOGIN FORM -->
     <div id="authLoginForm">
       <div class="auth-field">
         <label>Email Address</label>
-        <input type="email" id="loginEmail" placeholder="your@email.com"
-               onkeydown="if(event.key==='Enter')doLogin()">
+        <input type="email" id="loginEmail" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doLogin()">
       </div>
       <div class="auth-field">
         <label>Password</label>
         <div class="input-wrap">
-          <input type="password" id="loginPassword" placeholder="Enter your password"
-                 onkeydown="if(event.key==='Enter')doLogin()">
+          <input type="password" id="loginPassword" placeholder="Enter your password" onkeydown="if(event.key==='Enter')doLogin()">
           <button class="toggle-pass" onclick="togglePassVis('loginPassword',this)" type="button">
             <i class='bx bx-hide'></i>
           </button>
@@ -546,8 +479,6 @@
       </div>
       <p class="auth-switch">Don't have an account? <a onclick="switchAuthTab('signup')">Sign up free →</a></p>
     </div>
-
-    <!-- SIGNUP FORM -->
     <div id="authSignupForm" style="display:none">
       <div class="auth-field">
         <label>Full Name</label>
@@ -569,8 +500,7 @@
       <div class="auth-field">
         <label>Confirm Password</label>
         <div class="input-wrap">
-          <input type="password" id="signupConfirm" placeholder="Re-enter your password"
-                 onkeydown="if(event.key==='Enter')doSignup()">
+          <input type="password" id="signupConfirm" placeholder="Re-enter your password" onkeydown="if(event.key==='Enter')doSignup()">
           <button class="toggle-pass" onclick="togglePassVis('signupConfirm',this)" type="button">
             <i class='bx bx-hide'></i>
           </button>
@@ -593,7 +523,6 @@
       </div>
       <p class="auth-switch">Already have an account? <a onclick="switchAuthTab('login')">← Sign in</a></p>
     </div>
-
   </div>
 </div>
 
@@ -624,8 +553,6 @@
       <button class="icon-btn admin-btn" onclick="openModal('adminModal')" title="Admin Panel">
         <i class='bx bx-shield'></i>
       </button>
-
-      <!-- ── AUTH BUTTONS (shown when logged out) ── -->
       <div class="auth-btns" id="authBtns">
         <button class="btn-login" onclick="openAuthModal('login')">
           <i class='bx bx-log-in'></i> Login
@@ -634,8 +561,6 @@
           <i class='bx bx-user-plus'></i> Sign Up
         </button>
       </div>
-
-      <!-- ── USER DROPDOWN (shown when logged in) ── -->
       <div class="user-dropdown" id="userDropdown">
         <button class="user-avatar-btn" onclick="toggleDropdown()" id="userAvatarBtn">
           <div class="avatar-circle" id="userAvatarInitial">U</div>
@@ -651,7 +576,6 @@
           <button class="dropdown-item logout" onclick="doLogout()"><i class='bx bx-log-out'></i> Logout</button>
         </div>
       </div>
-
       <button class="cart-btn" onclick="toggleCart()">
         <i class='bx bx-cart'></i> Cart
         <span id="cartCount">0</span>
@@ -769,7 +693,7 @@
       <div class="about-content fade-up">
         <div class="sec-label">About Us</div>
         <h2>Why Choose Virtual E-Book?</h2>
-        <p>We provide the best collection of Computer Science e-books for college and university students. Our platform offers premium content curated by industry experts and professors.</p>
+        <p>We provide the best collection of Computer Science e-books for college and university students.</p>
         <div class="feature-list">
           <div class="feature-item"><i class='bx bx-check-circle'></i> 5000+ Premium CS E-Books</div>
           <div class="feature-item"><i class='bx bx-check-circle'></i> Download & Read Offline</div>
@@ -797,7 +721,7 @@
         <div class="blog-body">
           <div class="blog-date">📅 25 Dec 2025</div>
           <h4>Top 10 CS Books Every College Student Must Read</h4>
-          <p>Discover the essential computer science books that will help you excel in your studies and career.</p>
+          <p>Discover the essential computer science books that will help you excel in your studies.</p>
           <a href="#" class="blog-link">Read More <i class='bx bx-right-arrow-alt'></i></a>
         </div>
       </div>
@@ -806,7 +730,7 @@
         <div class="blog-body">
           <div class="blog-date">📅 20 Jan 2026</div>
           <h4>How AI is Changing the Way We Learn Programming</h4>
-          <p>Artificial Intelligence is revolutionizing education. Learn how AI tools are making programming more accessible.</p>
+          <p>Artificial Intelligence is revolutionizing education and making programming more accessible.</p>
           <a href="#" class="blog-link">Read More <i class='bx bx-right-arrow-alt'></i></a>
         </div>
       </div>
@@ -822,7 +746,7 @@
       <h2 class="sec-title">Get In Touch</h2>
       <p class="sec-sub">Have questions? We'd love to hear from you!</p>
     </div>
-    <divscript.js class="contact-inner">
+    <div class="contact-inner">
       <div class="contact-form fade-up">
         <h3>Send a Message</h3>
         <p>Fill out the form and we'll respond within 24 hours.</p>
@@ -848,7 +772,7 @@
   <div class="footer-grid">
     <div class="footer-brand">
       <h3>📚 Virtual E-Book</h3>
-      <p>Your premium destination for Computer Science e-books. Trusted by 12,000+ college students across India.</p>
+      <p>Your premium destination for Computer Science e-books. Trusted by 12,000+ students across India.</p>
       <div class="social-row">
         <a href="#" class="soc"><i class='bx bxl-facebook'></i></a>
         <a href="#" class="soc"><i class='bx bxl-instagram'></i></a>
@@ -879,7 +803,7 @@
     </div>
     <div class="footer-col">
       <h4>Contact</h4>
-      <p>📧htgautam2003@gmail.com</p><br>
+      <p>📧 htgautam2003@gmail.com</p><br>
       <p>📞 +91 9508566435</p><br>
       <p>📍 Patna, Bihar, India</p><br>
       <p>🕐 Mon–Sat: 9AM – 8PM</p>
@@ -890,14 +814,15 @@
     <p>Made with 💜 for Students</p>
   </div>
 </footer>
+
+<!-- ✅ RAZORPAY SCRIPT -->
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<!-- ✅ MAIN JS -->
 <script src="my.js"></script>
 
-<!-- ══════════════════════════════════════════
-     AUTH JAVASCRIPT
-═══════════════════════════════════════════ -->
+<!-- ✅ AUTH JAVASCRIPT -->
 <script>
-  /* ── Simple in-memory user store (replace with backend later) ── */
   let currentUser = JSON.parse(localStorage.getItem('veb_user') || 'null');
 
   function openAuthModal(tab = 'login') {
@@ -912,7 +837,6 @@
     document.body.style.overflow = '';
   }
 
-  // Close on backdrop click
   document.getElementById('authModalOverlay').addEventListener('click', function(e) {
     if (e.target === this) closeAuthModal();
   });
@@ -935,12 +859,13 @@
     el.className = 'auth-msg ' + type;
     el.style.display = 'block';
   }
+
   function clearAuthMsg() {
     const el = document.getElementById('authMsg');
-    el.style.display = 'none'; el.textContent = '';
+    el.style.display = 'none';
+    el.textContent = '';
   }
 
-  /* ── Password visibility toggle ── */
   function togglePassVis(inputId, btn) {
     const inp = document.getElementById(inputId);
     const icon = btn.querySelector('i');
@@ -953,70 +878,54 @@
     }
   }
 
-  /* ── LOGIN ── */
   function doLogin() {
     const email    = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
     clearAuthMsg();
-
     if (!email || !password) { showAuthMsg('Please fill in all fields.'); return; }
     if (!isValidEmail(email)) { showAuthMsg('Please enter a valid email address.'); return; }
-
-    // Check against stored users
     const users = JSON.parse(localStorage.getItem('veb_users') || '[]');
     const user = users.find(u => u.email === email);
-
     if (!user) { showAuthMsg('No account found with this email. Please sign up first.'); return; }
     if (user.password !== btoa(password)) { showAuthMsg('Incorrect password. Please try again.'); return; }
-
     loginSuccess(user);
   }
 
-  /* ── SIGNUP ── */
   function doSignup() {
     const name     = document.getElementById('signupName').value.trim();
     const email    = document.getElementById('signupEmail').value.trim();
     const password = document.getElementById('signupPassword').value;
     const confirm  = document.getElementById('signupConfirm').value;
     clearAuthMsg();
-
     if (!name || !email || !password || !confirm) { showAuthMsg('Please fill in all fields.'); return; }
     if (!isValidEmail(email)) { showAuthMsg('Please enter a valid email address.'); return; }
     if (password.length < 6) { showAuthMsg('Password must be at least 6 characters.'); return; }
     if (password !== confirm) { showAuthMsg('Passwords do not match.'); return; }
-
     const users = JSON.parse(localStorage.getItem('veb_users') || '[]');
     if (users.find(u => u.email === email)) { showAuthMsg('An account with this email already exists.'); return; }
-
     const newUser = { name, email, password: btoa(password), joined: new Date().toLocaleDateString('en-IN') };
     users.push(newUser);
     localStorage.setItem('veb_users', JSON.stringify(users));
-
     showAuthMsg('Account created successfully! Logging you in...', 'success');
     setTimeout(() => loginSuccess(newUser), 900);
   }
 
-  /* ── SOCIAL AUTH (demo) ── */
   function socialAuth(provider) {
     showAuthMsg(`${provider} login coming soon! Use email/password for now.`, 'success');
   }
 
-  /* ── FORGOT PASSWORD (demo) ── */
   function showForgot() {
-    showAuthMsg('Password reset link feature coming soon! Contact support for now.', 'success');
+    showAuthMsg('Password reset link feature coming soon!', 'success');
   }
 
-  /* ── LOGIN SUCCESS ── */
   function loginSuccess(user) {
     currentUser = user;
     localStorage.setItem('veb_user', JSON.stringify(user));
     closeAuthModal();
     updateNavForUser(user);
-    // Show toast if available
     if (typeof showToast === 'function') showToast(`Welcome back, ${user.name.split(' ')[0]}! 👋`);
   }
 
-  /* ── LOGOUT ── */
   function doLogout() {
     currentUser = null;
     localStorage.removeItem('veb_user');
@@ -1025,9 +934,8 @@
     if (typeof showToast === 'function') showToast('Logged out successfully. See you soon! 👋');
   }
 
-  /* ── UPDATE NAVBAR ── */
   function updateNavForUser(user) {
-    document.getElementById('authBtns').style.display    = 'none';
+    document.getElementById('authBtns').style.display = 'none';
     const ud = document.getElementById('userDropdown');
     ud.style.display = 'flex';
     ud.classList.add('visible');
@@ -1035,6 +943,7 @@
     document.getElementById('userAvatarInitial').textContent = initials;
     document.getElementById('userDisplayName').textContent   = user.name.split(' ')[0];
   }
+
   function updateNavForGuest() {
     document.getElementById('authBtns').style.display = 'flex';
     const ud = document.getElementById('userDropdown');
@@ -1042,12 +951,12 @@
     ud.classList.remove('visible');
   }
 
-  /* ── DROPDOWN TOGGLE ── */
   function toggleDropdown(forceClose = false) {
     const menu = document.getElementById('dropdownMenu');
     if (forceClose) { menu.classList.remove('open'); return; }
     menu.classList.toggle('open');
   }
+
   document.addEventListener('click', function(e) {
     const ud = document.getElementById('userDropdown');
     if (ud && !ud.contains(e.target)) {
@@ -1055,146 +964,13 @@
     }
   });
 
-  /* ── HELPERS ── */
   function isValidEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
 
-  /* ── INIT: restore session ── */
   (function init() {
     if (currentUser) updateNavForUser(currentUser);
     else updateNavForGuest();
   })();
 </script>
-<script>
-// ✅ RAZORPAY PAYMENT INTEGRATION
-async function processPayment(method) {
-  const name  = document.getElementById('customerName').value.trim();
-  const email = document.getElementById('customerEmail').value.trim();
 
-  // Validation
-  if (!name)  { alert('Please enter your name!');  return; }
-  if (!email) { alert('Please enter your email!'); return; }
-
-  // Get total amount
-  const totalText = document.getElementById('summaryTotal').textContent;
-  const amount = parseInt(totalText.replace('₹', '').replace(',', '').trim());
-
-  if (!amount || amount <= 0) { alert('Cart is empty!'); return; }
-
-  // COD - No Razorpay needed
-  if (method === 'Cash on Delivery') {
-    await saveOrder(method, 'COD-' + Date.now(), name, email);
-    return;
-  }
-
-  try {
-    // Step 1: Create Order from Backend
-    const res = await fetch('/api/payment/create-order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount })
-    });
-
-    const data = await res.json();
-    if (!data.success) { alert('Payment failed! Try again.'); return; }
-
-    // Step 2: Open Razorpay Checkout Popup
-    const options = {
-      key: 'rzp_live_SYKdilpCIN2G9A',
-      amount: data.order.amount,
-      currency: 'INR',
-      name: 'Virtual E-Book Store',
-      description: 'Book Purchase',
-      order_id: data.order.id,
-
-      // Step 3: After Payment Success
-      handler: async function(response) {
-        const verify = await fetch('/api/payment/verify-payment', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            razorpay_order_id:   response.razorpay_order_id,
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_signature:  response.razorpay_signature
-          })
-        });
-
-        const verifyData = await verify.json();
-        if (verifyData.success) {
-          await saveOrder(method, response.razorpay_payment_id, name, email);
-        } else {
-          alert('Payment verification failed! Contact support.');
-        }
-      },
-
-      prefill: { name: name, email: email },
-      theme:   { color: '#7c3aed' },
-      modal: {
-        ondismiss: function() {
-          alert('Payment cancelled!');
-        }
-      }
-    };
-
-    const rzp = new Razorpay(options);
-    rzp.open();
-    closeModal('payModal');
-
-  } catch (error) {
-    console.error('Payment error:', error);
-    alert('Something went wrong! Please try again.');
-  }
-}
-
-// ✅ Save Order to MongoDB
-async function saveOrder(method, paymentId, name, email) {
-  try {
-    const cartItems = JSON.parse(localStorage.getItem('cart') || '[]');
-    const totalText = document.getElementById('summaryTotal').textContent;
-    const amount    = parseInt(totalText.replace('₹','').replace(',','').trim());
-
-    const orderData = {
-      books:         cartItems.map(item => ({
-        title: item.title,
-        price: item.price,
-        qty:   item.qty || 1
-      })),
-      totalAmount:   amount,
-      paymentMethod: method,
-      orderId:       paymentId,
-      customerName:  name,
-      customerEmail: email,
-      status:        'completed'
-    };
-
-    // Save to MongoDB
-    await fetch('/api/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(orderData)
-    });
-
-    // Show Success
-    document.getElementById('successDetails').innerHTML = `
-      <b>Order ID:</b> ${paymentId}<br>
-      <b>Name:</b> ${name}<br>
-      <b>Email:</b> ${email}<br>
-      <b>Amount:</b> ₹${amount}<br>
-      <b>Payment:</b> ${method}<br>
-      <b>Status:</b> <span style="color:#10b981">✅ Completed</span>
-    `;
-
-    openModal('successModal');
-
-    // Clear Cart
-    localStorage.removeItem('cart');
-    if (typeof updateCart === 'function') updateCart();
-
-  } catch (error) {
-    console.error('Order save error:', error);
-    alert('Order placed but failed to save. Contact support!');
-  }
-}
-</script>
 </body>
 </html>
- 
