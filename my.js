@@ -1,815 +1,602 @@
-// ================================
-// API URL - Backend Connection
-// ================================
 const API = "https://virtual-e-book-store.onrender.com";
 
-// ================================
-// ✅ EMAILJS CONFIGURATION
-// Replace these 3 values with your actual EmailJS credentials
-// Get them from: https://www.emailjs.com/
-// ================================
-const EMAILJS_PUBLIC_KEY   = "YOUR_PUBLIC_KEY";    // Account → General
-const EMAILJS_SERVICE_ID   = "YOUR_SERVICE_ID";    // Email Services
-const EMAILJS_CONTACT_TID  = "YOUR_CONTACT_TEMPLATE_ID";  // Template for Contact Form
-const EMAILJS_ORDER_TID    = "YOUR_ORDER_TEMPLATE_ID";    // Template for Order Confirmation
+const EMAILJS_PUBLIC_KEY  = "YOUR_PUBLIC_KEY";
+const EMAILJS_SERVICE_ID  = "YOUR_SERVICE_ID";
+const EMAILJS_CONTACT_TID = "YOUR_CONTACT_TEMPLATE_ID";
+const EMAILJS_ORDER_TID   = "YOUR_ORDER_TEMPLATE_ID";
 
-// ✅ Initialize EmailJS
 emailjs.init(EMAILJS_PUBLIC_KEY);
 
-// ================================
-// STATE
-// ================================
-let cart = JSON.parse(localStorage.getItem("ebookCart") || "[]");
+let cart      = JSON.parse(localStorage.getItem("ebookCart")      || "[]");
 let downloads = JSON.parse(localStorage.getItem("ebookDownloads") || "[]");
-let books = [];
+let books        = [];
 let adminLoggedIn = false;
 let currentFilter = "all";
 
-// ================================
-// INIT - Load books from MongoDB
-// ================================
+// ✅ FIX 1 — was missing, caused login/signup to crash
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+// ✅ FIX 2 — restore user session on page refresh
+function restoreLoginState() {
+  const stored = JSON.parse(localStorage.getItem("veb_user") || "null");
+  if (stored) updateNavForUser(stored);
+}
+
+// ✅ FIX 3 — book cards now animate when scrolled into view
+function setupFadeObserver() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) {
+        e.target.classList.add("visible");
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll(".fade-up").forEach((el) => observer.observe(el));
+}
+
 document.addEventListener("DOMContentLoaded", () => {
-    loadBooks();
-    renderDownloadSection();
-    updateCartCount();
-    updateDlCount();
+  loadBooks();
+  renderDownloadSection();
+  updateCartCount();
+  updateDlCount();
+  setupFadeObserver();   // ✅ added
+  restoreLoginState();   // ✅ added
 });
 
-// ================================
-// LOAD BOOKS FROM MONGODB
-// ================================
 async function loadBooks() {
-    try {
-        const res = await fetch(`${API}/api/books`);
-        books = await res.json();
-
-        if (books.length === 0) {
-            books = getDefaultBooks();
-            for (let book of books) {
-                await fetch(`${API}/api/books`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(book)
-                });
-            }
-            const res2 = await fetch(`${API}/api/books`);
-            books = await res2.json();
-        }
-        renderBooks();
-        renderDownloadSection();
-    } catch (error) {
-        console.log("Backend not connected, using local data");
-        books = getDefaultBooks();
-        renderBooks();
-        renderDownloadSection();
+  try {
+    const res = await fetch(`${API}/api/books`);
+    books = await res.json();
+    if (!Array.isArray(books) || books.length === 0) {
+      books = getDefaultBooks();
+      for (let book of books) {
+        await fetch(`${API}/api/books`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(book)
+        }).catch(() => {});
+      }
+      const res2 = await fetch(`${API}/api/books`).catch(() => null);
+      if (res2 && res2.ok) books = await res2.json();
     }
+  } catch {
+    console.log("Backend offline — using local data");
+    books = getDefaultBooks();
+  }
+  renderBooks();
+  renderDownloadSection();
+  setupFadeObserver();
 }
 
-// ================================
-// DEFAULT BOOKS DATA
-// ================================
 function getDefaultBooks() {
-    return [
-        {
-            title: "Data Structures & Algorithms",
-            author: "Cormen, Leiserson",
-            price: 299,
-            tag: "premium",
-            rating: "4.9",
-            reviews: "2.3k",
-            img: "https://m.media-amazon.com/images/I/41T7PmhE+hL._SY445_SX342_.jpg",
-            downloadUrl: "#",
-            adminAdded: false
-        },
-        {
-            title: "Operating Systems Concepts",
-            author: "Silberschatz",
-            price: 0,
-            tag: "free",
-            rating: "4.7",
-            reviews: "1.8k",
-            img: "https://m.media-amazon.com/images/I/51Qy2upM+aL._SY445_SX342_.jpg",
-            downloadUrl: "#",
-            adminAdded: false
-        },
-        {
-            title: "Python for Data Science",
-            author: "Wes McKinney",
-            price: 249,
-            tag: "new",
-            rating: "4.8",
-            reviews: "3.1k",
-            img: "https://m.media-amazon.com/images/I/41bSVpNmEAL._SY445_SX342_.jpg",
-            downloadUrl: "#",
-            adminAdded: false
-        },
-        {
-            title: "Database Management Systems",
-            author: "Ramakrishnan",
-            price: 349,
-            tag: "premium",
-            rating: "4.6",
-            reviews: "1.5k",
-            img: "https://m.media-amazon.com/images/I/51eL4eq+prL._SY445_SX342_.jpg",
-            downloadUrl: "#",
-            adminAdded: false
-        },
-        {
-            title: "Computer Networks",
-            author: "Andrew Tanenbaum",
-            price: 0,
-            tag: "free",
-            rating: "4.8",
-            reviews: "2.7k",
-            img: "https://m.media-amazon.com/images/I/41XiZXHkKIL._SY445_SX342_.jpg",
-            downloadUrl: "#",
-            adminAdded: false
-        },
-        {
-            title: "Machine Learning with Python",
-            author: "Sebastian Raschka",
-            price: 399,
-            tag: "new",
-            rating: "4.9",
-            reviews: "4.2k",
-            img: "https://m.media-amazon.com/images/I/51Rz1wZQqYL._SY445_SX342_.jpg",
-            downloadUrl: "#",
-            adminAdded: false
-        }
-    ];
+  return [
+    { title: "Data Structures & Algorithms", author: "Cormen, Leiserson", price: 299, tag: "premium", rating: "4.9", reviews: "2.3k", img: "https://m.media-amazon.com/images/I/41T7PmhE+hL._SY445_SX342_.jpg", downloadUrl: "#", adminAdded: false },
+    { title: "Operating Systems Concepts",   author: "Silberschatz",      price: 0,   tag: "free",    rating: "4.7", reviews: "1.8k", img: "https://m.media-amazon.com/images/I/51Qy2upM+aL._SY445_SX342_.jpg", downloadUrl: "#", adminAdded: false },
+    { title: "Python for Data Science",      author: "Wes McKinney",      price: 249, tag: "new",     rating: "4.8", reviews: "3.1k", img: "https://m.media-amazon.com/images/I/41bSVpNmEAL._SY445_SX342_.jpg", downloadUrl: "#", adminAdded: false },
+    { title: "Database Management Systems",  author: "Ramakrishnan",      price: 349, tag: "premium", rating: "4.6", reviews: "1.5k", img: "https://m.media-amazon.com/images/I/51eL4eq+prL._SY445_SX342_.jpg", downloadUrl: "#", adminAdded: false },
+    { title: "Computer Networks",            author: "Andrew Tanenbaum",  price: 0,   tag: "free",    rating: "4.8", reviews: "2.7k", img: "https://m.media-amazon.com/images/I/41XiZXHkKIL._SY445_SX342_.jpg", downloadUrl: "#", adminAdded: false },
+    { title: "Machine Learning with Python", author: "Sebastian Raschka", price: 399, tag: "new",     rating: "4.9", reviews: "4.2k", img: "https://m.media-amazon.com/images/I/51Rz1wZQqYL._SY445_SX342_.jpg", downloadUrl: "#", adminAdded: false }
+  ];
 }
 
-// ================================
-// TOAST
-// ================================
 function showToast(msg, type = "info") {
-    const t = document.getElementById("toast");
-    t.textContent = msg;
-    t.className = "show " + type;
-    setTimeout(() => t.className = "", 3200);
+  const t = document.getElementById("toast");
+  if (!t) return;
+  t.textContent = msg;
+  t.className = "show " + type;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.className = "", 3200);
 }
 
-// ================================
-// SCROLL
-// ================================
 window.addEventListener("scroll", () => {
-    document.getElementById("btt").classList.toggle("show", window.scrollY > 300);
+  const btt = document.getElementById("btt");
+  if (btt) btt.classList.toggle("show", window.scrollY > 300);
 });
 
-// ================================
-// NAV
-// ================================
 function toggleNav() {
-    document.getElementById("navMenu").classList.toggle("open");
+  document.getElementById("navMenu").classList.toggle("open");
 }
 
-// ================================
-// MODAL
-// ================================
-function openModal(id) { document.getElementById(id).classList.add("open"); }
+function openModal(id)  { document.getElementById(id).classList.add("open");    }
 function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+
 document.addEventListener("DOMContentLoaded", () => {
-    document.querySelectorAll(".modal-overlay").forEach(m => {
-        m.addEventListener("click", e => {
-            if (e.target === m) m.classList.remove("open");
-        });
+  document.querySelectorAll(".modal-overlay").forEach(m => {
+    m.addEventListener("click", e => {
+      if (e.target === m) m.classList.remove("open");
     });
+  });
 });
 
-// ================================
-// RENDER BOOKS
-// ================================
-function renderBooks(filter = currentFilter) {
-    const grid = document.getElementById("booksGrid");
-    if (!grid) return;
-
-    let filtered = filter === "all" ? books : books.filter(b => b.tag === filter);
-
-    if (filtered.length === 0) {
-        grid.innerHTML = `<div style="text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">
-            <span style="font-size:48px">📚</span>
-            <p style="margin-top:12px">No books found!</p>
-        </div>`;
-        return;
-    }
-
-    grid.innerHTML = filtered.map(book => {
-        const bookId = book._id || book.id;
-        const tagClass = `tag-${book.tag}`;
-        const tagLabel = book.tag === "free" ? "Free" : book.tag === "premium" ? "Premium 💎" : "New ✨";
-        const priceHtml = book.price === 0
-            ? `<span class="free">FREE</span>`
-            : `₹${book.price} <small>/ book</small>`;
-
-        return `
-        <div class="book-card fade-up" data-tag="${book.tag}">
-            <div class="book-cover">
-                <img src="${book.img}" alt="${book.title}"
-                    onerror="this.src='https://via.placeholder.com/230x200/241748/a78bfa?text=📚'">
-                <span class="book-tag ${tagClass}">${tagLabel}</span>
-            </div>
-            <div class="book-info">
-                <h4>${book.title}</h4>
-                <p class="book-author">by ${book.author}</p>
-                <p class="book-rating">
-                    <span class="star">★</span> ${book.rating} (${book.reviews} reviews)
-                </p>
-                <div class="book-bottom">
-                    <div class="book-price">${priceHtml}</div>
-                    <div class="book-actions">
-                        ${book.price === 0
-                            ? `<button class="dl-quick-btn" onclick='quickDownload(${JSON.stringify(book)})'>
-                                <i class="bx bx-download"></i>
-                               </button>`
-                            : `<button class="add-cart-btn" onclick='addToCart(${JSON.stringify(book)}, this)'>
-                                + Cart
-                               </button>`
-                        }
-                    </div>
-                </div>
-            </div>
-        </div>`;
-    }).join("");
-
-    document.querySelectorAll(".book-card.fade-up").forEach(el => {
-        setTimeout(() => el.classList.add("visible"), 100);
-    });
+function renderBooks(filter) {
+  filter = filter || currentFilter;
+  const grid = document.getElementById("booksGrid");
+  if (!grid) return;
+  const filtered = filter === "all" ? books : books.filter(b => b.tag === filter);
+  if (!filtered.length) {
+    grid.innerHTML = `<div style="text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">
+      <span style="font-size:48px">📚</span>
+      <p style="margin-top:12px">No books found!</p>
+    </div>`;
+    return;
+  }
+  grid.innerHTML = filtered.map(book => {
+    const tagLabel  = book.tag === "free" ? "Free 🎁" : book.tag === "premium" ? "Premium 💎" : "New ✨";
+    const priceHtml = book.price === 0
+      ? `<span class="free">FREE</span>`
+      : `₹${book.price} <small>/ book</small>`;
+    return `
+    <div class="book-card fade-up" data-tag="${book.tag}">
+      <div class="book-cover">
+        <img src="${book.img}" alt="${book.title}"
+          onerror="this.src='https://via.placeholder.com/230x200/241748/a78bfa?text=📚'">
+        <span class="book-tag tag-${book.tag}">${tagLabel}</span>
+      </div>
+      <div class="book-info">
+        <h4>${book.title}</h4>
+        <p class="book-author">by ${book.author}</p>
+        <p class="book-rating"><span class="star">★</span> ${book.rating} (${book.reviews} reviews)</p>
+        <div class="book-bottom">
+          <div class="book-price">${priceHtml}</div>
+          <div class="book-actions">
+            ${book.price === 0
+              ? `<button class="dl-quick-btn" onclick='quickDownload(${JSON.stringify(book)})'><i class="bx bx-download"></i></button>`
+              : `<button class="add-cart-btn" onclick='addToCart(${JSON.stringify(book)}, this)'>+ Cart</button>`
+            }
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+  setupFadeObserver();
 }
 
-// ================================
-// FILTER & SEARCH
-// ================================
 function filterBooks(tag, btn) {
-    currentFilter = tag;
-    document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    renderBooks(tag);
+  currentFilter = tag;
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  if (btn) btn.classList.add("active");
+  renderBooks(tag);
 }
 
+// ✅ FIX 4 — search now checks author too
 function searchBooks() {
-    const q = document.getElementById("searchInput").value.toLowerCase();
-    document.querySelectorAll(".book-card").forEach(c => {
-        const title = c.querySelector("h4")?.textContent.toLowerCase() || "";
-        c.style.display = title.includes(q) ? "block" : "none";
-    });
+  const q = (document.getElementById("searchInput")?.value || "").toLowerCase();
+  document.querySelectorAll(".book-card").forEach(c => {
+    const title  = c.querySelector("h4")?.textContent.toLowerCase()           || "";
+    const author = c.querySelector(".book-author")?.textContent.toLowerCase() || "";
+    c.style.display = title.includes(q) || author.includes(q) ? "" : "none";
+  });
 }
 
-// ================================
-// CART
-// ================================
 function toggleCart() {
-    document.getElementById("cartSidebar").classList.toggle("open");
-    document.getElementById("cartOverlay").classList.toggle("open");
-    renderCart();
+  document.getElementById("cartSidebar").classList.toggle("open");
+  document.getElementById("cartOverlay").classList.toggle("open");
+  renderCart();
 }
 
 function addToCart(book, btn) {
-    const ex = cart.find(i => i.title === book.title);
-    if (ex) {
-        ex.qty++;
-    } else {
-        cart.push({
-            name: book.title,
-            price: book.price,
-            img: book.img,
-            qty: 1
-        });
-    }
-    saveCart();
-    updateCartCount();
-    showToast("📚 " + book.title + " added to cart!", "success");
-    if (btn) {
-        btn.textContent = "✅ Added";
-        btn.classList.add("added");
-        setTimeout(() => {
-            btn.textContent = "+ Cart";
-            btn.classList.remove("added");
-        }, 1500);
-    }
+  const ex = cart.find(i => i.name === book.title);
+  if (ex) { ex.qty++; }
+  else { cart.push({ name: book.title, price: book.price, img: book.img, qty: 1 }); }
+  saveCart();
+  updateCartCount();
+  showToast("📚 " + book.title + " added to cart!", "success");
+  if (btn) {
+    btn.textContent = "✅ Added";
+    btn.classList.add("added");
+    setTimeout(() => { btn.textContent = "+ Cart"; btn.classList.remove("added"); }, 1500);
+  }
 }
 
 function renderCart() {
-    const body = document.getElementById("cartBody");
-    const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
-    document.getElementById("cartTotal").textContent = total === 0 ? "FREE" : "₹" + total;
-
-    if (!cart.length) {
-        body.innerHTML = `<div class="cart-empty">
-            <span>📚</span>
-            <p>Your cart is empty!</p>
-        </div>`;
-        return;
-    }
-
-    body.innerHTML = cart.map((item, i) => `
-        <div class="cart-item">
-            <img src="${item.img}" alt="${item.name}"
-                onerror="this.src='https://via.placeholder.com/56x72/241748/a78bfa?text=Book'">
-            <div class="ci-info">
-                <h4>${item.name}</h4>
-                <p>${item.price === 0 ? "🎁 FREE" : "₹" + item.price}</p>
-                <div class="ci-bottom">
-                    <div class="qty-ctrl">
-                        <button class="qty-btn" onclick="changeQty(${i},-1)">−</button>
-                        <span class="qty-n">${item.qty}</span>
-                        <button class="qty-btn" onclick="changeQty(${i},1)">+</button>
-                    </div>
-                    <button class="rm-btn" onclick="removeItem(${i})">🗑</button>
-                </div>
-            </div>
-        </div>`).join("");
+  const body    = document.getElementById("cartBody");
+  const total   = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const totalEl = document.getElementById("cartTotal");
+  if (totalEl) totalEl.textContent = total === 0 ? "FREE" : "₹" + total;
+  if (!cart.length) {
+    body.innerHTML = `<div class="cart-empty"><span>📚</span><p>Your cart is empty!</p></div>`;
+    return;
+  }
+  body.innerHTML = cart.map((item, i) => `
+    <div class="cart-item">
+      <img src="${item.img}" alt="${item.name}"
+        onerror="this.src='https://via.placeholder.com/56x72/241748/a78bfa?text=Book'">
+      <div class="ci-info">
+        <h4>${item.name}</h4>
+        <p>${item.price === 0 ? "🎁 FREE" : "₹" + item.price}</p>
+        <div class="ci-bottom">
+          <div class="qty-ctrl">
+            <button class="qty-btn" onclick="changeQty(${i},-1)">−</button>
+            <span class="qty-n">${item.qty}</span>
+            <button class="qty-btn" onclick="changeQty(${i},1)">+</button>
+          </div>
+          <button class="rm-btn" onclick="removeItem(${i})">🗑</button>
+        </div>
+      </div>
+    </div>`).join("");
 }
 
 function changeQty(i, d) {
-    cart[i].qty += d;
-    if (cart[i].qty <= 0) cart.splice(i, 1);
-    saveCart(); renderCart(); updateCartCount();
+  cart[i].qty += d;
+  if (cart[i].qty <= 0) cart.splice(i, 1);
+  saveCart(); renderCart(); updateCartCount();
 }
 
 function removeItem(i) {
-    const n = cart[i].name;
-    cart.splice(i, 1);
-    saveCart(); renderCart(); updateCartCount();
-    showToast("🗑 " + n + " removed", "info");
+  const n = cart[i].name;
+  cart.splice(i, 1);
+  saveCart(); renderCart(); updateCartCount();
+  showToast("🗑 " + n + " removed", "info");
 }
 
-function saveCart() {
-    localStorage.setItem("ebookCart", JSON.stringify(cart));
-}
+function saveCart() { localStorage.setItem("ebookCart", JSON.stringify(cart)); }
 
 function updateCartCount() {
-    const total = cart.reduce((s, i) => s + i.qty, 0);
-    const el = document.getElementById("cartCount");
-    if (el) {
-        el.textContent = total;
-        el.style.display = total > 0 ? "flex" : "none";
-    }
+  const total = cart.reduce((s, i) => s + i.qty, 0);
+  const el = document.getElementById("cartCount");
+  if (el) { el.textContent = total; el.style.display = total > 0 ? "flex" : "none"; }
 }
 
-// ================================
-// CHECKOUT
-// ================================
 function openCheckout() {
-    if (!cart.length) { showToast("🛒 Cart is empty!", "error"); return; }
-    const items = cart.map(i => `
-        <div class="summary-row">
-            <span>${i.name} × ${i.qty}</span>
-            <span>${i.price === 0 ? "FREE" : "₹" + (i.price * i.qty)}</span>
-        </div>`).join("");
-    const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
-    document.getElementById("summaryItems").innerHTML = items;
-    document.getElementById("summaryTotal").textContent = total === 0 ? "FREE" : "₹" + total;
-    document.getElementById("cartSidebar").classList.remove("open");
-    document.getElementById("cartOverlay").classList.remove("open");
-    openModal("payModal");
+  if (!cart.length) { showToast("🛒 Cart is empty!", "error"); return; }
+  const items = cart.map(i => `
+    <div class="summary-row">
+      <span>${i.name} × ${i.qty}</span>
+      <span>${i.price === 0 ? "FREE" : "₹" + (i.price * i.qty)}</span>
+    </div>`).join("");
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  document.getElementById("summaryItems").innerHTML = items;
+  document.getElementById("summaryTotal").textContent = total === 0 ? "FREE" : "₹" + total;
+  document.getElementById("cartSidebar").classList.remove("open");
+  document.getElementById("cartOverlay").classList.remove("open");
+  openModal("payModal");
 }
 
 function switchPay(type, btn) {
-    document.querySelectorAll(".pay-tab").forEach(b => b.classList.remove("active"));
-    document.querySelectorAll(".pay-content").forEach(c => c.classList.remove("active"));
-    btn.classList.add("active");
-    document.getElementById("pay-" + type).classList.add("active");
+  document.querySelectorAll(".pay-tab").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".pay-content").forEach(c => c.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById("pay-" + type).classList.add("active");
 }
 
-// ================================
-// PROCESS PAYMENT - RAZORPAY
-// ================================
 async function processPayment(method) {
+  const customerName  = document.getElementById("customerName")?.value.trim();
+  const customerEmail = document.getElementById("customerEmail")?.value.trim();
+  if (!customerName) { showToast("❌ Please enter your name!", "error"); return; }
+  if (!customerEmail || !isValidEmail(customerEmail)) { showToast("❌ Please enter valid email!", "error"); return; }
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
 
-    const customerName  = document.getElementById("customerName")?.value.trim();
-    const customerEmail = document.getElementById("customerEmail")?.value.trim();
+  if (method === "Cash on Delivery") {
+    const codEmail = document.getElementById("codEmail")?.value.trim();
+    if (!codEmail || !isValidEmail(codEmail)) { showToast("❌ Enter valid COD email!", "error"); return; }
+    await saveRazorpayOrder(method, "COD-" + Date.now(), customerName, customerEmail, total);
+    return;
+  }
 
-    if (!customerName) {
-        showToast("❌ Please enter your name!", "error"); return;
-    }
-    if (!customerEmail || !customerEmail.includes("@")) {
-        showToast("❌ Please enter valid email!", "error"); return;
-    }
+  // ✅ FIX 5 — free cart skips Razorpay
+  if (total === 0) {
+    await saveRazorpayOrder(method, "FREE-" + Date.now(), customerName, customerEmail, 0);
+    return;
+  }
 
-    const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  try {
+    const res  = await fetch(`${API}/api/payment/create-order`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: total })
+    });
+    const data = await res.json();
+    if (!data.success) { showToast("❌ Payment failed! Try again.", "error"); return; }
 
-    // ✅ COD - No Razorpay needed
-    if (method === "Cash on Delivery") {
-        const codEmail = document.getElementById("codEmail").value;
-        if (!codEmail || !codEmail.includes("@")) {
-            showToast("❌ Enter valid email!", "error"); return;
+    const options = {
+      key:         "rzp_live_SYKdilpCIN2G9A",
+      amount:      data.order.amount,
+      currency:    "INR",
+      name:        "Virtual E-Book Store",
+      description: "Book Purchase",
+      order_id:    data.order.id,
+      handler: async function(response) {
+        const verify = await fetch(`${API}/api/payment/verify-payment`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            razorpay_order_id:   response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature:  response.razorpay_signature
+          })
+        });
+        const vd = await verify.json();
+        if (vd.success) {
+          await saveRazorpayOrder(method, response.razorpay_payment_id, customerName, customerEmail, total);
+        } else {
+          showToast("❌ Payment verification failed!", "error");
         }
-        await saveRazorpayOrder(method, "COD-" + Date.now(), customerName, customerEmail, total);
-        return;
-    }
-
-    try {
-        // Step 1: Create Razorpay Order from Backend
-        const res = await fetch(`${API}/api/payment/create-order`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ amount: total })
-        });
-
-        const data = await res.json();
-        if (!data.success) { showToast("❌ Payment failed! Try again.", "error"); return; }
-
-        // Step 2: Open Razorpay Checkout Popup
-        const options = {
-            key: "rzp_live_SYKdilpCIN2G9A",
-            amount: data.order.amount,
-            currency: "INR",
-            name: "Virtual E-Book Store",
-            description: "Book Purchase",
-            order_id: data.order.id,
-
-            // Step 3: After Payment Success
-            handler: async function(response) {
-                const verify = await fetch(`${API}/api/payment/verify-payment`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        razorpay_order_id:   response.razorpay_order_id,
-                        razorpay_payment_id: response.razorpay_payment_id,
-                        razorpay_signature:  response.razorpay_signature
-                    })
-                });
-
-                const verifyData = await verify.json();
-                if (verifyData.success) {
-                    await saveRazorpayOrder(method, response.razorpay_payment_id, customerName, customerEmail, total);
-                } else {
-                    showToast("❌ Payment verification failed!", "error");
-                }
-            },
-
-            prefill: { name: customerName, email: customerEmail },
-            theme:   { color: "#7c3aed" },
-            modal: {
-                ondismiss: function() {
-                    showToast("❌ Payment cancelled!", "error");
-                }
-            }
-        };
-
-        const rzp = new Razorpay(options);
-        rzp.open();
-        closeModal("payModal");
-
-    } catch (error) {
-        console.error("Payment error:", error);
-        showToast("❌ Something went wrong! Try again.", "error");
-    }
+      },
+      prefill: { name: customerName, email: customerEmail },
+      theme:   { color: "#7c3aed" },
+      modal:   { ondismiss: () => showToast("❌ Payment cancelled!", "error") }
+    };
+    const rzp = new Razorpay(options);
+    rzp.open();
+    closeModal("payModal");
+  } catch (err) {
+    console.error("Payment error:", err);
+    showToast("❌ Something went wrong! Try again.", "error");
+  }
 }
 
-// ================================
-// ✅ SEND ORDER CONFIRMATION EMAIL via EmailJS
-// ================================
 async function sendOrderConfirmationEmail(customerName, customerEmail, orderId, method, total, cartItems) {
-    const bookList = cartItems.map(i =>
-        `${i.name} x${i.qty} — ${i.price === 0 ? "FREE" : "₹" + (i.price * i.qty)}`
-    ).join("\n");
-
-    try {
-        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_ORDER_TID, {
-            customer_name:    customerName,
-            customer_email:   customerEmail,
-            order_id:         orderId,
-            payment_method:   method,
-            total_amount:     total === 0 ? "FREE" : "₹" + total,
-            book_list:        bookList,
-            order_date:       new Date().toLocaleDateString("en-IN", {
-                                  day: "2-digit", month: "long", year: "numeric"
-                              }),
-            support_email:    "virtualebook@gmail.com"
-        });
-        console.log("✅ Order confirmation email sent to:", customerEmail);
-    } catch (err) {
-        // Email sending failed silently — order still succeeds
-        console.error("⚠️ Order confirmation email failed:", err);
-    }
+  const bookList = cartItems.map(i =>
+    `${i.name} x${i.qty} — ${i.price === 0 ? "FREE" : "₹" + (i.price * i.qty)}`
+  ).join("\n");
+  try {
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_ORDER_TID, {
+      customer_name:  customerName,
+      customer_email: customerEmail,
+      order_id:       orderId,
+      payment_method: method,
+      total_amount:   total === 0 ? "FREE" : "₹" + total,
+      book_list:      bookList,
+      order_date:     new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),
+      support_email:  "virtualebook@gmail.com"
+    });
+  } catch (err) {
+    console.warn("Order email failed silently:", err);
+  }
 }
 
-// ================================
-// SAVE ORDER AFTER RAZORPAY
-// ================================
 async function saveRazorpayOrder(method, paymentId, customerName, customerEmail, total) {
-    try {
-        await fetch(`${API}/api/orders`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                books: cart.map(i => ({
-                    title: i.name,
-                    price: i.price,
-                    qty:   i.qty
-                })),
-                totalAmount:   total,
-                paymentMethod: method,
-                orderId:       paymentId,
-                status:        "completed",
-                customerName:  customerName,
-                customerEmail: customerEmail
-            })
-        });
+  try {
+    await fetch(`${API}/api/orders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        books:         cart.map(i => ({ title: i.name, price: i.price, qty: i.qty })),
+        totalAmount:   total,
+        paymentMethod: method,
+        orderId:       paymentId,
+        status:        "completed",
+        customerName,
+        customerEmail
+      })
+    });
 
-        // ✅ Send real order confirmation email to customer
-        await sendOrderConfirmationEmail(customerName, customerEmail, paymentId, method, total, [...cart]);
+    await sendOrderConfirmationEmail(customerName, customerEmail, paymentId, method, total, [...cart]);
+    showToast("✅ Order placed! Email sent to " + customerEmail, "success");
 
-        showToast("✅ Order placed! Confirmation email sent to " + customerEmail, "success");
+    cart.forEach(item => {
+      const book = books.find(b => b.title === item.name);
+      if (book && !downloads.find(d => d.title === book.title)) {
+        downloads.push({ ...book, purchasedAt: new Date().toLocaleDateString("en-IN") });
+      }
+    });
+    saveDownloads(); updateDlCount(); renderDownloadSection();
 
-        // Add to downloads
-        cart.forEach(item => {
-            const book = books.find(b => b.title === item.name);
-            if (book && !downloads.find(d => d.title === book.title)) {
-                downloads.push({ ...book, purchasedAt: new Date().toLocaleDateString() });
-            }
-        });
-        saveDownloads();
-        updateDlCount();
-        renderDownloadSection();
+    document.getElementById("successDetails").innerHTML = `
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span>Order ID</span><span style="color:#a78bfa;font-weight:700">${paymentId}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span>Customer</span><span style="color:#10b981;font-weight:700">${customerName}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span>Email</span><span style="color:#a78bfa;font-weight:700">${customerEmail}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span>Payment</span><span style="color:#10b981;font-weight:700">${method}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+        <span>Total Paid</span>
+        <span style="color:#a78bfa;font-weight:700">${total === 0 ? "FREE" : "₹" + total}</span>
+      </div>
+      <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px;font-size:13px;color:#34d399;">
+        <span>📧</span>
+        <span>Confirmation sent to <strong>${customerEmail}</strong></span>
+      </div>`;
 
-        // ✅ Show Success Modal with email confirmation message
-        document.getElementById("successDetails").innerHTML = `
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-                <span>Order ID</span>
-                <span style="color:#a78bfa;font-weight:700">${paymentId}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-                <span>Customer</span>
-                <span style="color:#10b981;font-weight:700">${customerName}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-                <span>Email</span>
-                <span style="color:#a78bfa;font-weight:700">${customerEmail}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-                <span>Payment</span>
-                <span style="color:#10b981;font-weight:700">${method}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-                <span>Books</span>
-                <span>${cart.length} item(s)</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:12px">
-                <span>Total Paid</span>
-                <span style="color:#a78bfa;font-weight:700">
-                    ${total === 0 ? "FREE" : "₹" + total}
-                </span>
-            </div>
-            <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px;font-size:13px;color:#34d399;">
-                <span style="font-size:16px">📧</span>
-                <span>Order confirmation email has been sent to <strong>${customerEmail}</strong></span>
-            </div>`;
+    closeModal("payModal");
+    openModal("successModal");
+    cart = []; saveCart(); renderCart(); updateCartCount();
 
-        closeModal("payModal");
-        openModal("successModal");
-        cart = [];
-        saveCart();
-        renderCart();
-        updateCartCount();
-
-    } catch (error) {
-        console.error("Order save error:", error);
-        showToast("❌ Order save failed! Contact support.", "error");
-    }
+  } catch (err) {
+    console.error("Order save error:", err);
+    showToast("❌ Order save failed! Contact support.", "error");
+  }
 }
 
-// ================================
-// DOWNLOADS
-// ================================
-function saveDownloads() {
-    localStorage.setItem("ebookDownloads", JSON.stringify(downloads));
-}
+function saveDownloads() { localStorage.setItem("ebookDownloads", JSON.stringify(downloads)); }
 
 function updateDlCount() {
-    const el = document.getElementById("dlCount");
-    if (!el) return;
-    if (downloads.length > 0) {
-        el.textContent = downloads.length;
-        el.style.display = "flex";
-    } else {
-        el.style.display = "none";
-    }
+  const el = document.getElementById("dlCount");
+  if (!el) return;
+  el.textContent   = downloads.length;
+  el.style.display = downloads.length > 0 ? "flex" : "none";
 }
 
 function quickDownload(book) {
-    if (!downloads.find(d => d.title === book.title)) {
-        downloads.push({ ...book, purchasedAt: new Date().toLocaleDateString() });
-        saveDownloads();
-        updateDlCount();
-        renderDownloadSection();
-        showToast("📥 " + book.title + " added to downloads!", "success");
-    }
-    triggerDownload(book);
+  if (!downloads.find(d => d.title === book.title)) {
+    downloads.push({ ...book, purchasedAt: new Date().toLocaleDateString("en-IN") });
+    saveDownloads(); updateDlCount(); renderDownloadSection();
+    showToast("📥 " + book.title + " added to library!", "success");
+  }
+  triggerDownload(book);
 }
 
 function triggerDownload(book) {
-    if (!book.downloadUrl || book.downloadUrl === "#") {
-        showToast("⚠️ Download link not available yet", "info");
-        return;
-    }
-    const a = document.createElement("a");
-    a.href = book.downloadUrl;
-    a.download = book.title + ".pdf";
-    a.target = "_blank";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    showToast("⬇️ Downloading: " + book.title, "success");
+  if (!book.downloadUrl || book.downloadUrl === "#") {
+    showToast("⚠️ Download link not available yet", "info"); return;
+  }
+  const a = document.createElement("a");
+  a.href = book.downloadUrl; a.download = book.title + ".pdf"; a.target = "_blank";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  showToast("⬇️ Downloading: " + book.title, "success");
 }
 
 function renderDownloadSection() {
-    const grid = document.getElementById("dlGrid");
-    if (!grid) return;
-
-    const freeBooks = books.filter(b => b.price === 0);
-    const allDlBooks = [...downloads];
-    freeBooks.forEach(fb => {
-        if (!allDlBooks.find(d => d.title === fb.title)) allDlBooks.push(fb);
-    });
-
-    if (!allDlBooks.length) {
-        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--muted)">
-            <span style="font-size:48px;display:block;margin-bottom:12px">📭</span>
-            <p>No books available for download yet</p>
-        </div>`;
-        return;
-    }
-
-    grid.innerHTML = allDlBooks.map(book => {
-        const isPurchased = downloads.find(d => d.title === book.title);
-        const canDownload = book.price === 0 || isPurchased;
-        return `
-        <div class="dl-card fade-up">
-            <img class="dl-cover" src="${book.img}" alt="${book.title}"
-                onerror="this.src='https://via.placeholder.com/56x72/241748/a78bfa?text=📚'">
-            <div class="dl-info">
-                <h4>${book.title}</h4>
-                <p>by ${book.author}</p>
-                ${canDownload
-                    ? `<button class="dl-btn" onclick='triggerDownload(${JSON.stringify(book)})'>
-                        <i class="bx bx-download"></i> Download PDF
-                       </button>`
-                    : `<span class="dl-locked">🔒 Purchase to unlock</span>`
-                }
-                ${isPurchased
-                    ? `<p style="font-size:11px;color:#10b981;margin-top:8px">✅ Purchased</p>`
-                    : ""
-                }
-            </div>
-        </div>`;
-    }).join("");
+  const grid = document.getElementById("dlGrid");
+  if (!grid) return;
+  const freeBooks  = books.filter(b => b.price === 0);
+  const allDlBooks = [...downloads];
+  freeBooks.forEach(fb => { if (!allDlBooks.find(d => d.title === fb.title)) allDlBooks.push(fb); });
+  if (!allDlBooks.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--muted)">
+      <span style="font-size:48px;display:block;margin-bottom:12px">📭</span>
+      <p>No books available for download yet</p>
+    </div>`;
+    return;
+  }
+  grid.innerHTML = allDlBooks.map(book => {
+    const isPurchased = downloads.find(d => d.title === book.title);
+    const canDownload = book.price === 0 || isPurchased;
+    return `
+    <div class="dl-card fade-up">
+      <img class="dl-cover" src="${book.img}" alt="${book.title}"
+        onerror="this.src='https://via.placeholder.com/56x72/241748/a78bfa?text=📚'">
+      <div class="dl-info">
+        <h4>${book.title}</h4>
+        <p>by ${book.author}</p>
+        ${canDownload
+          ? `<button class="dl-btn" onclick='triggerDownload(${JSON.stringify(book)})'><i class="bx bx-download"></i> Download PDF</button>`
+          : `<span class="dl-locked">🔒 Purchase to unlock</span>`
+        }
+        ${isPurchased ? `<p style="font-size:11px;color:#10b981;margin-top:8px">✅ Purchased</p>` : ""}
+      </div>
+    </div>`;
+  }).join("");
+  setupFadeObserver();
 }
 
 function openDownloads() {
-    const list = document.getElementById("downloadList");
-    const none = document.getElementById("noDownloads");
-    if (!downloads.length) {
-        list.innerHTML = "";
-        none.style.display = "block";
-    } else {
-        none.style.display = "none";
-        list.innerHTML = downloads.map(book => `
-            <div class="dm-item">
-                <img src="${book.img}" alt="${book.title}"
-                    onerror="this.src='https://via.placeholder.com/44x56/241748/a78bfa?text=📚'">
-                <div class="dm-item-info">
-                    <h4>${book.title}</h4>
-                    <p>Purchased: ${book.purchasedAt || "N/A"}</p>
-                </div>
-                <button class="dm-dl-btn" onclick='triggerDownload(${JSON.stringify(book)})'>
-                    <i class="bx bx-download"></i> PDF
-                </button>
-            </div>`).join("");
-    }
-    openModal("downloadModal");
+  const list = document.getElementById("downloadList");
+  const none = document.getElementById("noDownloads");
+  if (!downloads.length) { list.innerHTML = ""; none.style.display = "block"; }
+  else {
+    none.style.display = "none";
+    list.innerHTML = downloads.map(book => `
+      <div class="dm-item">
+        <img src="${book.img}" alt="${book.title}"
+          onerror="this.src='https://via.placeholder.com/44x56/241748/a78bfa?text=📚'">
+        <div class="dm-item-info">
+          <h4>${book.title}</h4>
+          <p>Purchased: ${book.purchasedAt || "N/A"}</p>
+        </div>
+        <button class="dm-dl-btn" onclick='triggerDownload(${JSON.stringify(book)})'><i class="bx bx-download"></i> PDF</button>
+      </div>`).join("");
+  }
+  openModal("downloadModal");
 }
 
-// ================================
-// ADMIN
-// ================================
 function adminLogin() {
-    const pass = document.getElementById("adminPass").value;
-    if (pass === "admin123") {
-        adminLoggedIn = true;
-        document.getElementById("adminLogin").style.display = "none";
-        document.getElementById("adminForm").style.display = "block";
-        showToast("🔓 Admin access granted!", "success");
-    } else {
-        showToast("❌ Wrong password!", "error");
-        document.getElementById("adminPass").value = "";
-    }
+  const pass = document.getElementById("adminPass").value;
+  if (pass === "admin123") {
+    adminLoggedIn = true;
+    document.getElementById("adminLogin").style.display = "none";
+    document.getElementById("adminForm").style.display  = "block";
+    showToast("🔓 Admin access granted!", "success");
+  } else {
+    showToast("❌ Wrong password!", "error");
+    document.getElementById("adminPass").value = "";
+  }
 }
 
 async function addNewBook() {
-    const title       = document.getElementById("newTitle").value.trim();
-    const author      = document.getElementById("newAuthor").value.trim();
-    const imgInput    = document.getElementById("newImg").value.trim();
-    const price       = parseInt(document.getElementById("newPrice").value) || 0;
-    const tag         = document.getElementById("newTag").value;
-    const rating      = parseFloat(document.getElementById("newRating").value) || 4.5;
-    const downloadUrl = document.getElementById("newDownload").value.trim() || "#";
-
-    if (!title || !author) {
-        showToast("❌ Title and Author are required!", "error");
-        return;
-    }
-
-    const newBook = {
-        title, author, price, tag,
-        rating: rating.toFixed(1),
-        reviews: "0",
-        img: imgInput || "https://via.placeholder.com/230x200/241748/a78bfa?text=📚",
-        downloadUrl,
-        adminAdded: true
-    };
-
-    try {
-        await fetch(`${API}/api/books`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(newBook)
-        });
-        showToast("✅ Book saved to database!", "success");
-    } catch (error) {
-        showToast("⚠️ Saved locally only!", "info");
-    }
-
-    await loadBooks();
-
-    ["newTitle","newAuthor","newImg","newPrice","newRating","newDownload"]
-        .forEach(id => document.getElementById(id).value = "");
-
-    closeModal("adminModal");
-
-    setTimeout(() => {
-        document.getElementById("adminLogin").style.display = "block";
-        document.getElementById("adminForm").style.display = "none";
-        document.getElementById("adminPass").value = "";
-        adminLoggedIn = false;
-    }, 500);
-}
-
-// ================================
-// ✅ CONTACT FORM — Real Email via EmailJS
-// ================================
-function sendContact() {
-    const name  = document.getElementById("cName").value.trim();
-    const email = document.getElementById("cEmail").value.trim();
-    const phone = document.getElementById("cPhone").value.trim();
-    const msg   = document.getElementById("cMsg").value.trim();
-    const btn   = document.querySelector(".submit-btn");
-
-    // Validation
-    if (!name) {
-        showToast("❌ Please enter your name!", "error"); return;
-    }
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        showToast("❌ Please enter a valid email!", "error"); return;
-    }
-    if (!msg) {
-        showToast("❌ Please write a message!", "error"); return;
-    }
-
-    // Show sending state
-    btn.textContent = "⏳ Sending...";
-    btn.disabled = true;
-
-    // ✅ Send real email via EmailJS
-    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_CONTACT_TID, {
-        from_name:  name,
-        from_email: email,
-        phone:      phone || "Not provided",
-        message:    msg,
-        to_email:   "virtualebook@gmail.com"
-    })
-    .then(function() {
-        // ✅ Success
-        showToast("✅ Message sent! We'll reply within 24 hours.", "success");
-        ["cName", "cEmail", "cPhone", "cMsg"]
-            .forEach(id => document.getElementById(id).value = "");
-        btn.textContent = "📨 Send Message";
-        btn.disabled = false;
-    })
-    .catch(function(err) {
-        // ❌ Failed
-        console.error("Contact email error:", err);
-        showToast("❌ Failed to send! Please email us directly at virtualebook@gmail.com", "error");
-        btn.textContent = "📨 Send Message";
-        btn.disabled = false;
+  const title       = document.getElementById("newTitle").value.trim();
+  const author      = document.getElementById("newAuthor").value.trim();
+  const imgInput    = document.getElementById("newImg").value.trim();
+  const price       = parseInt(document.getElementById("newPrice").value) || 0;
+  const tag         = document.getElementById("newTag").value;
+  const rating      = parseFloat(document.getElementById("newRating").value) || 4.5;
+  const downloadUrl = document.getElementById("newDownload").value.trim() || "#";
+  if (!title || !author) { showToast("❌ Title and Author are required!", "error"); return; }
+  const newBook = {
+    title, author, price, tag,
+    rating: rating.toFixed(1), reviews: "0",
+    img: imgInput || "https://via.placeholder.com/230x200/241748/a78bfa?text=📚",
+    downloadUrl, adminAdded: true
+  };
+  try {
+    await fetch(`${API}/api/books`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newBook)
     });
+    showToast("✅ Book saved to database!", "success");
+  } catch { showToast("⚠️ Saved locally only!", "info"); }
+  await loadBooks();
+  ["newTitle","newAuthor","newImg","newPrice","newRating","newDownload"]
+    .forEach(id => document.getElementById(id).value = "");
+  closeModal("adminModal");
+  setTimeout(() => {
+    document.getElementById("adminLogin").style.display = "block";
+    document.getElementById("adminForm").style.display  = "none";
+    document.getElementById("adminPass").value          = "";
+    adminLoggedIn = false;
+  }, 500);
 }
 
-// ================================
-// CARD FORMAT
-// ================================
+// ✅ FIX 6 — single sendContact, no duplicate
+function sendContact() {
+  const name  = document.getElementById("cName").value.trim();
+  const email = document.getElementById("cEmail").value.trim();
+  const phone = document.getElementById("cPhone").value.trim();
+  const msg   = document.getElementById("cMsg").value.trim();
+  const btn   = document.getElementById("contactSubmitBtn");
+  const msgEl = document.getElementById("contactMsg");
+  msgEl.className = "contact-msg"; msgEl.style.display = "none";
+  if (!name)                { showContactMsg("⚠️ Please enter your name.", "error");          return; }
+  if (!isValidEmail(email)) { showContactMsg("⚠️ Please enter a valid email.", "error");      return; }
+  if (!msg)                 { showContactMsg("⚠️ Please write a message.", "error");           return; }
+  btn.textContent = "⏳ Sending..."; btn.disabled = true;
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_CONTACT_TID, {
+    from_name: name, from_email: email,
+    phone: phone || "Not provided", message: msg,
+    to_email: "virtualebook@gmail.com"
+  })
+  .then(() => {
+    showContactMsg("✅ Message sent! We'll reply within 24 hours.", "success");
+    ["cName","cEmail","cPhone","cMsg"].forEach(id => document.getElementById(id).value = "");
+    btn.textContent = "📨 Send Message"; btn.disabled = false;
+  })
+  .catch(err => {
+    console.error("Contact email error:", err);
+    showContactMsg("❌ Failed to send. Email us directly.", "error");
+    btn.textContent = "📨 Send Message"; btn.disabled = false;
+  });
+}
+
+function showContactMsg(text, type) {
+  const el = document.getElementById("contactMsg");
+  if (!el) return;
+  el.textContent = text; el.className = "contact-msg " + type; el.style.display = "flex";
+  if (type === "success") setTimeout(() => el.style.display = "none", 6000);
+}
+
+// needed by index.html auth script
+function updateNavForUser(user) {
+  document.getElementById("authBtns").style.display = "none";
+  const ud = document.getElementById("userDropdown");
+  ud.style.display = "flex"; ud.classList.add("visible");
+  const initials = user.name.split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase();
+  document.getElementById("userAvatarInitial").textContent = initials;
+  document.getElementById("userDisplayName").textContent   = user.name.split(" ")[0];
+}
+
+function updateNavForGuest() {
+  document.getElementById("authBtns").style.display = "flex";
+  const ud = document.getElementById("userDropdown");
+  ud.style.display = "none"; ud.classList.remove("visible");
+}
+
 document.addEventListener("DOMContentLoaded", () => {
-    const cardNum = document.getElementById("cardNum");
-    const cardExp = document.getElementById("cardExp");
-    if (cardNum) {
-        cardNum.addEventListener("input", function() {
-            this.value = this.value.replace(/\D/g,"").replace(/(.{4})/g,"$1 ").trim();
-        });
-    }
-    if (cardExp) {
-        cardExp.addEventListener("input", function() {
-            this.value = this.value.replace(/\D/g,"").replace(/(\d{2})(\d)/,"$1/$2");
-        });
-    }
+  const cardNum = document.getElementById("cardNum");
+  const cardExp = document.getElementById("cardExp");
+  if (cardNum) cardNum.addEventListener("input", function() {
+    this.value = this.value.replace(/\D/g,"").replace(/(.{4})/g,"$1 ").trim();
+  });
+  if (cardExp) cardExp.addEventListener("input", function() {
+    this.value = this.value.replace(/\D/g,"").replace(/(\d{2})(\d)/,"$1/$2");
+  });
 });
