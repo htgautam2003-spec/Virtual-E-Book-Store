@@ -132,7 +132,7 @@ function renderBooks(filter) {
     <div class="book-card fade-up" data-tag="${book.tag}">
       <div class="book-cover">
         <img src="${book.img}" alt="${book.title}"
-          onerror="this.src='https://via.placeholder.com/230x200/241748/a78bfa?text=📚'">
+          onerror="this.src='https://placehold.co/230x200/241748/a78bfa?text=Book'">
         <span class="book-tag tag-${book.tag}">${tagLabel}</span>
       </div>
       <div class="book-info">
@@ -203,7 +203,7 @@ function renderCart() {
   body.innerHTML = cart.map((item, i) => `
     <div class="cart-item">
       <img src="${item.img}" alt="${item.name}"
-        onerror="this.src='https://via.placeholder.com/56x72/241748/a78bfa?text=Book'">
+        onerror="this.src='https://placehold.co/56x72/241748/a78bfa?text=Book'">
       <div class="ci-info">
         <h4>${item.name}</h4>
         <p>${item.price === 0 ? "🎁 FREE" : "₹" + item.price}</p>
@@ -454,7 +454,7 @@ function renderDownloadSection() {
     return `
     <div class="dl-card fade-up">
       <img class="dl-cover" src="${book.img}" alt="${book.title}"
-        onerror="this.src='https://via.placeholder.com/56x72/241748/a78bfa?text=📚'">
+        onerror="this.src='https://placehold.co/56x72/241748/a78bfa?text=Book'">
       <div class="dl-info">
         <h4>${book.title}</h4>
         <p>by ${book.author}</p>
@@ -478,7 +478,7 @@ function openDownloads() {
     list.innerHTML = downloads.map(book => `
       <div class="dm-item">
         <img src="${book.img}" alt="${book.title}"
-          onerror="this.src='https://via.placeholder.com/44x56/241748/a78bfa?text=📚'">
+          onerror="this.src='https://placehold.co/44x56/241748/a78bfa?text=Book'">
         <div class="dm-item-info">
           <h4>${book.title}</h4>
           <p>Purchased: ${book.purchasedAt || "N/A"}</p>
@@ -514,7 +514,7 @@ async function addNewBook() {
   const newBook = {
     title, author, price, tag,
     rating: rating.toFixed(1), reviews: "0",
-    img: imgInput || "https://via.placeholder.com/230x200/241748/a78bfa?text=📚",
+    img: imgInput || "https://placehold.co/230x200/241748/a78bfa?text=Book",
     downloadUrl, adminAdded: true
   };
   try {
