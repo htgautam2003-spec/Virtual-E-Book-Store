@@ -7,8 +7,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
   <link rel="stylesheet" href="my.css">
-
-  <!-- ✅ EmailJS SDK — must load BEFORE my.js -->
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
   <style>
@@ -19,7 +17,7 @@
     }
     .btn-login {
       background: transparent;
-      border: 1.5px solid rgba(124, 58, 237, 0.55);
+      border: 1.5px solid rgba(124,58,237,0.55);
       color: #c4b5fd;
       padding: 8px 20px;
       border-radius: 25px;
@@ -34,11 +32,11 @@
       white-space: nowrap;
     }
     .btn-login:hover {
-      background: rgba(124, 58, 237, 0.15);
+      background: rgba(124,58,237,0.15);
       border-color: #7c3aed;
       color: #fff;
       transform: translateY(-1px);
-      box-shadow: 0 4px 15px rgba(124, 58, 237, 0.25);
+      box-shadow: 0 4px 15px rgba(124,58,237,0.25);
     }
     .btn-signup {
       background: linear-gradient(135deg, #7c3aed, #a855f7);
@@ -55,19 +53,19 @@
       align-items: center;
       gap: 6px;
       white-space: nowrap;
-      box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);
+      box-shadow: 0 4px 14px rgba(124,58,237,0.4);
     }
     .btn-signup:hover {
       background: linear-gradient(135deg, #6d28d9, #9333ea);
       transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(124, 58, 237, 0.55);
+      box-shadow: 0 6px 20px rgba(124,58,237,0.55);
     }
     .user-avatar-btn {
       display: none;
       align-items: center;
       gap: 8px;
-      background: rgba(124, 58, 237, 0.15);
-      border: 1.5px solid rgba(124, 58, 237, 0.35);
+      background: rgba(124,58,237,0.15);
+      border: 1.5px solid rgba(124,58,237,0.35);
       color: #c4b5fd;
       padding: 6px 14px 6px 6px;
       border-radius: 25px;
@@ -77,17 +75,23 @@
       cursor: pointer;
       transition: all 0.25s ease;
     }
-    .user-avatar-btn:hover { background: rgba(124,58,237,0.25); color:#fff; }
+    .user-avatar-btn:hover { background: rgba(124,58,237,0.25); color: #fff; }
     .user-avatar-btn .avatar-circle {
-      width: 28px; height: 28px;
-      background: linear-gradient(135deg,#7c3aed,#a855f7);
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, #7c3aed, #a855f7);
       border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 700; color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
     }
     .auth-modal-overlay {
-      position: fixed; inset: 0;
-      background: rgba(5, 3, 15, 0.82);
+      position: fixed;
+      inset: 0;
+      background: rgba(5,3,15,0.82);
       backdrop-filter: blur(6px);
       z-index: 9999;
       display: none;
@@ -96,11 +100,11 @@
       animation: fadeIn 0.2s ease;
     }
     .auth-modal-overlay.open { display: flex; }
-    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-    @keyframes slideUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
     .auth-modal {
       background: linear-gradient(145deg, #0e0820, #130d2a);
-      border: 1px solid rgba(124, 58, 237, 0.25);
+      border: 1px solid rgba(124,58,237,0.25);
       border-radius: 20px;
       padding: 40px 36px;
       width: 100%;
@@ -110,20 +114,30 @@
       animation: slideUp 0.3s ease;
     }
     .auth-modal .close-auth {
-      position: absolute; top: 16px; right: 18px;
+      position: absolute;
+      top: 16px;
+      right: 18px;
       background: rgba(255,255,255,0.06);
-      border: none; color: #a89bc2;
-      width: 32px; height: 32px; border-radius: 50%;
-      font-size: 20px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
+      border: none;
+      color: #a89bc2;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       transition: background 0.2s;
     }
-    .auth-modal .close-auth:hover { background: rgba(255,255,255,0.12); color:#fff; }
+    .auth-modal .close-auth:hover { background: rgba(255,255,255,0.12); color: #fff; }
     .auth-modal .auth-logo { text-align: center; margin-bottom: 24px; }
     .auth-modal .auth-logo span { font-size: 36px; display: block; margin-bottom: 6px; }
     .auth-modal .auth-logo h2 {
       font-family: 'Cormorant Garamond', serif;
-      font-size: 26px; color: #fff; margin: 0;
+      font-size: 26px;
+      color: #fff;
+      margin: 0;
     }
     .auth-modal .auth-logo p { color: #8b7aaa; font-size: 14px; margin-top: 4px; }
     .auth-tabs {
@@ -135,11 +149,16 @@
       margin-bottom: 24px;
     }
     .auth-tab {
-      flex: 1; padding: 9px;
-      background: none; border: none;
-      color: #8b7aaa; font-family: 'Outfit', sans-serif;
-      font-size: 14px; font-weight: 500;
-      cursor: pointer; border-radius: 9px;
+      flex: 1;
+      padding: 9px;
+      background: none;
+      border: none;
+      color: #8b7aaa;
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 9px;
       transition: all 0.25s ease;
     }
     .auth-tab.active {
@@ -149,14 +168,18 @@
     }
     .auth-field { margin-bottom: 16px; }
     .auth-field label {
-      display: block; font-size: 13px; color: #a89bc2;
-      font-family: 'Outfit', sans-serif; font-weight: 500;
+      display: block;
+      font-size: 13px;
+      color: #a89bc2;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 500;
       margin-bottom: 6px;
     }
     .auth-field input {
-      width: 100%; box-sizing: border-box;
-      background: rgba(124, 58, 237, 0.07);
-      border: 1.5px solid rgba(124, 58, 237, 0.2);
+      width: 100%;
+      box-sizing: border-box;
+      background: rgba(124,58,237,0.07);
+      border: 1.5px solid rgba(124,58,237,0.2);
       border-radius: 11px;
       padding: 12px 14px;
       color: #fff;
@@ -173,25 +196,37 @@
     .auth-field .input-wrap { position: relative; }
     .auth-field .input-wrap input { padding-right: 42px; }
     .auth-field .toggle-pass {
-      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-      background: none; border: none; color: #7b6fa0; cursor: pointer;
-      font-size: 18px; padding: 0; line-height: 1;
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: #7b6fa0;
+      cursor: pointer;
+      font-size: 18px;
+      padding: 0;
+      line-height: 1;
     }
     .auth-field .toggle-pass:hover { color: #a78bfa; }
     .forgot-link { text-align: right; margin-top: -8px; margin-bottom: 16px; }
     .forgot-link a {
-      font-size: 13px; color: #a78bfa;
-      text-decoration: none; font-family: 'Outfit', sans-serif;
+      font-size: 13px;
+      color: #a78bfa;
+      text-decoration: none;
+      font-family: 'Outfit', sans-serif;
     }
     .forgot-link a:hover { text-decoration: underline; }
     .auth-submit-btn {
       width: 100%;
       background: linear-gradient(135deg, #7c3aed, #a855f7);
-      color: #fff; border: none;
+      color: #fff;
+      border: none;
       padding: 13px;
       border-radius: 12px;
       font-family: 'Outfit', sans-serif;
-      font-size: 15px; font-weight: 600;
+      font-size: 15px;
+      font-weight: 600;
       cursor: pointer;
       transition: all 0.25s ease;
       box-shadow: 0 4px 16px rgba(124,58,237,0.4);
@@ -201,24 +236,39 @@
       transform: translateY(-1px);
       box-shadow: 0 6px 22px rgba(124,58,237,0.55);
     }
+    .auth-submit-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
     .auth-divider {
-      display: flex; align-items: center; gap: 10px;
-      margin-bottom: 18px; color: #5a4d72;
-      font-family: 'Outfit', sans-serif; font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+      color: #5a4d72;
+      font-family: 'Outfit', sans-serif;
+      font-size: 13px;
     }
     .auth-divider::before, .auth-divider::after {
-      content: ''; flex: 1; height: 1px;
+      content: '';
+      flex: 1;
+      height: 1px;
       background: rgba(124,58,237,0.18);
     }
     .social-auth { display: flex; gap: 10px; margin-bottom: 20px; }
     .social-auth-btn {
-      flex: 1; padding: 10px 8px;
+      flex: 1;
+      padding: 10px 8px;
       background: rgba(255,255,255,0.04);
       border: 1.5px solid rgba(124,58,237,0.18);
-      border-radius: 10px; color: #c4b5fd;
-      font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500;
-      cursor: pointer; transition: all 0.2s;
-      display: flex; align-items: center; justify-content: center; gap: 6px;
+      border-radius: 10px;
+      color: #c4b5fd;
+      font-family: 'Outfit', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
     }
     .social-auth-btn:hover {
       background: rgba(124,58,237,0.12);
@@ -228,10 +278,13 @@
     .auth-switch {
       text-align: center;
       font-family: 'Outfit', sans-serif;
-      font-size: 13px; color: #8b7aaa;
+      font-size: 13px;
+      color: #8b7aaa;
     }
     .auth-switch a {
-      color: #a78bfa; font-weight: 600; cursor: pointer;
+      color: #a78bfa;
+      font-weight: 600;
+      cursor: pointer;
       text-decoration: none;
     }
     .auth-switch a:hover { text-decoration: underline; }
@@ -247,16 +300,20 @@
       background: rgba(239,68,68,0.1);
       border: 1px solid rgba(239,68,68,0.3);
       color: #f87171;
+      display: block;
     }
     .auth-msg.success {
       background: rgba(16,185,129,0.1);
       border: 1px solid rgba(16,185,129,0.3);
       color: #34d399;
+      display: block;
     }
     .user-dropdown { position: relative; display: none; }
     .user-dropdown.visible { display: flex; }
     .dropdown-menu {
-      position: absolute; top: calc(100% + 8px); right: 0;
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
       background: #130d2a;
       border: 1px solid rgba(124,58,237,0.25);
       border-radius: 14px;
@@ -268,24 +325,27 @@
     }
     .dropdown-menu.open { display: block; animation: slideUp 0.2s ease; }
     .dropdown-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px 12px; border-radius: 9px;
-      color: #c4b5fd; font-family: 'Outfit', sans-serif;
-      font-size: 14px; cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 9px;
+      color: #c4b5fd;
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      cursor: pointer;
       transition: background 0.2s;
-      border: none; background: none; width: 100%; text-align: left;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      text-decoration: none;
     }
-    .dropdown-item:hover { background: rgba(124,58,237,0.15); color:#fff; }
+    .dropdown-item:hover { background: rgba(124,58,237,0.15); color: #fff; }
     .dropdown-item.logout { color: #f87171; }
     .dropdown-item.logout:hover { background: rgba(239,68,68,0.1); }
     .dropdown-divider { height: 1px; background: rgba(124,58,237,0.15); margin: 6px 0; }
-
-    /* ✅ Contact form sending state styles */
-    .submit-btn:disabled {
-      opacity: 0.7;
-      cursor: not-allowed;
-      transform: none !important;
-    }
+    .submit-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none !important; }
     .contact-msg {
       padding: 12px 16px;
       border-radius: 10px;
@@ -308,7 +368,6 @@
       color: #f87171;
       display: flex;
     }
-
     @media (max-width: 768px) {
       .auth-btns { gap: 7px; }
       .btn-login, .btn-signup { padding: 7px 13px; font-size: 13px; }
@@ -360,20 +419,12 @@
       <button class="pay-tab" onclick="switchPay('cod',this)"><i class='bx bx-package'></i> COD</button>
     </div>
     <div class="pay-content active" id="pay-card">
-      <p style="color:#a78bfa;font-size:13px;margin-bottom:16px;text-align:center">
-        💳 Secure payment powered by Razorpay
-      </p>
-      <button class="pay-btn" onclick="processPayment('Credit/Debit Card')">
-        💳 Pay Now with Razorpay
-      </button>
+      <p style="color:#a78bfa;font-size:13px;margin-bottom:16px;text-align:center">💳 Secure payment powered by Razorpay</p>
+      <button class="pay-btn" onclick="processPayment('Credit/Debit Card')">💳 Pay Now with Razorpay</button>
     </div>
     <div class="pay-content" id="pay-upi">
-      <p style="color:#a78bfa;font-size:13px;margin-bottom:16px;text-align:center">
-        📱 Pay via UPI powered by Razorpay
-      </p>
-      <button class="pay-btn" onclick="processPayment('UPI')">
-        📱 Pay via UPI
-      </button>
+      <p style="color:#a78bfa;font-size:13px;margin-bottom:16px;text-align:center">📱 Pay via UPI powered by Razorpay</p>
+      <button class="pay-btn" onclick="processPayment('UPI')">📱 Pay via UPI</button>
     </div>
     <div class="pay-content" id="pay-cod">
       <div class="cod-box">
@@ -385,9 +436,7 @@
         <label>Confirm Email</label>
         <input type="email" id="codEmail" placeholder="your@email.com">
       </div>
-      <button class="pay-btn" onclick="processPayment('Cash on Delivery')">
-        📦 Confirm COD Order
-      </button>
+      <button class="pay-btn" onclick="processPayment('Cash on Delivery')">📦 Confirm COD Order</button>
     </div>
   </div>
 </div>
@@ -409,7 +458,7 @@
   <div class="modal" style="max-width:560px">
     <button class="close-modal" onclick="closeModal('downloadModal')">×</button>
     <h2>📥 My Downloads</h2>
-    <p>Your purchased & free books ready to download</p>
+    <p>Your purchased &amp; free books ready to download</p>
     <div id="downloadList" style="margin-top:16px"></div>
     <div id="noDownloads" style="text-align:center;padding:40px 20px;color:var(--muted);display:none">
       <span style="font-size:48px;display:block;margin-bottom:12px">📭</span>
@@ -433,15 +482,14 @@
         <input type="password" id="adminPass" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')adminLogin()">
       </div>
       <button class="pay-btn" onclick="adminLogin()">🔓 Login as Admin</button>
-      <p style="color:#6b5b95;font-size:13px;margin-top:10px;text-align:center">Default password: <span style="color:#a78bfa">admin123</span></p>
     </div>
     <div id="adminForm" style="display:none">
       <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:10px;padding:12px 16px;margin-bottom:20px;display:flex;align-items:center;gap:10px;font-size:14px;color:#10b981">
-        <i class='bx bx-shield-check' style="font-size:20px"></i> Logged in as Admin ✅
+        <i class='bx bx-shield-check' style="font-size:20px"></i> Logged in as Admin
       </div>
       <div class="pay-field"><label>Book Title *</label><input type="text" id="newTitle" placeholder="e.g. Introduction to Algorithms"></div>
       <div class="pay-field"><label>Author *</label><input type="text" id="newAuthor" placeholder="e.g. Thomas H. Cormen"></div>
-      <div class="pay-field"><label>Cover Image URL</label><input type="text" id="newImg" placeholder="https://... (leave blank for default)"></div>
+      <div class="pay-field"><label>Cover Image URL</label><input type="text" id="newImg" placeholder="https://..."></div>
       <div class="pay-row">
         <div class="pay-field">
           <label>Price (₹) — 0 = Free</label>
@@ -457,7 +505,7 @@
         </div>
       </div>
       <div class="pay-field"><label>Rating (e.g. 4.8)</label><input type="number" id="newRating" placeholder="4.8" min="1" max="5" step="0.1"></div>
-      <div class="pay-field"><label>Download Link (PDF URL)</label><input type="text" id="newDownload" placeholder="https://... or leave blank"></div>
+      <div class="pay-field"><label>Download Link (PDF URL)</label><input type="text" id="newDownload" placeholder="https://..."></div>
       <button class="pay-btn" onclick="addNewBook()">➕ Add Book to Store</button>
     </div>
   </div>
@@ -481,6 +529,8 @@
       </button>
     </div>
     <div class="auth-msg" id="authMsg"></div>
+
+    <!-- LOGIN FORM -->
     <div id="authLoginForm">
       <div class="auth-field">
         <label>Email Address</label>
@@ -495,13 +545,13 @@
           </button>
         </div>
       </div>
-      <div class="forgot-link"><a href="#" onclick="showForgot()">Forgot password?</a></div>
-      <button class="auth-submit-btn" onclick="doLogin()">
+      <div class="forgot-link"><a href="#" onclick="showForgot();return false;">Forgot password?</a></div>
+      <button class="auth-submit-btn" id="loginSubmitBtn" onclick="doLogin()">
         <i class='bx bx-log-in'></i> Login to Account
       </button>
       <div class="auth-divider">or continue with</div>
       <div class="social-auth">
-        <button class="social-auth-btn" onclick="socialAuth('Google')">
+        <button class="social-auth-btn googleLoginBtn" onclick="handleGoogleLogin()">
           <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="16" height="16" alt="G"> Google
         </button>
         <button class="social-auth-btn" onclick="socialAuth('GitHub')">
@@ -513,6 +563,8 @@
       </div>
       <p class="auth-switch">Don't have an account? <a onclick="switchAuthTab('signup')">Sign up free →</a></p>
     </div>
+
+    <!-- SIGNUP FORM -->
     <div id="authSignupForm" style="display:none">
       <div class="auth-field">
         <label>Full Name</label>
@@ -540,12 +592,12 @@
           </button>
         </div>
       </div>
-      <button class="auth-submit-btn" onclick="doSignup()">
+      <button class="auth-submit-btn" id="signupSubmitBtn" onclick="doSignup()">
         <i class='bx bx-user-plus'></i> Create Account
       </button>
       <div class="auth-divider">or sign up with</div>
       <div class="social-auth">
-        <button class="social-auth-btn" onclick="socialAuth('Google')">
+        <button class="social-auth-btn googleLoginBtn" onclick="handleGoogleLogin()">
           <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="16" height="16" alt="G"> Google
         </button>
         <button class="social-auth-btn" onclick="socialAuth('GitHub')">
@@ -603,11 +655,18 @@
         </button>
         <div class="dropdown-menu" id="dropdownMenu">
           <button class="dropdown-item"><i class='bx bx-user'></i> My Profile</button>
-          <button class="dropdown-item" onclick="openModal('downloadModal');toggleDropdown()"><i class='bx bx-download'></i> My Downloads</button>
+          <button class="dropdown-item" onclick="openModal('downloadModal');toggleDropdown()">
+            <i class='bx bx-download'></i> My Downloads
+          </button>
+          <a href="wishlist.html" class="dropdown-item">
+            <i class='bx bx-heart'></i> My Wishlist
+          </a>
           <button class="dropdown-item"><i class='bx bx-purchase-tag'></i> My Orders</button>
           <button class="dropdown-item"><i class='bx bx-cog'></i> Settings</button>
           <div class="dropdown-divider"></div>
-          <button class="dropdown-item logout" onclick="doLogout()"><i class='bx bx-log-out'></i> Logout</button>
+          <button class="dropdown-item logout" onclick="doLogout()">
+            <i class='bx bx-log-out'></i> Logout
+          </button>
         </div>
       </div>
       <button class="cart-btn" onclick="toggleCart()">
@@ -615,7 +674,9 @@
         <span id="cartCount">0</span>
       </button>
     </div>
-    <div class="hamburger" onclick="toggleNav()"><span></span><span></span><span></span></div>
+    <div class="hamburger" onclick="toggleNav()">
+      <span></span><span></span><span></span>
+    </div>
   </nav>
 </header>
 
@@ -654,34 +715,34 @@
     <div class="cat-grid">
       <a href="computer.html" class="cat-card fade-up">
         <span class="cat-badge">Detailed ✨</span>
-        <div class="cat-img"><img src="https://img.freepik.com/free-vector/creative-abstract-quantum-illustration_23-2149236239.jpg"></div>
+        <div class="cat-img"><img src="https://img.freepik.com/free-vector/creative-abstract-quantum-illustration_23-2149236239.jpg" alt="CS"></div>
         <h4>Computer Science</h4>
-        <p>DSA, Algorithms, OS, DBMS, Networks & OOP</p>
+        <p>DSA, Algorithms, OS, DBMS, Networks &amp; OOP</p>
       </a>
       <a href="programming.html" class="cat-card fade-up">
         <span class="cat-badge">Hot 🔥</span>
-        <div class="cat-img"><img src="https://img.freepik.com/free-vector/programming-concept-illustration_114360-1351.jpg"></div>
+        <div class="cat-img"><img src="https://img.freepik.com/free-vector/programming-concept-illustration_114360-1351.jpg" alt="Programming"></div>
         <h4>Programming</h4>
-        <p>Python, Java, C++, JavaScript & Web Dev</p>
+        <p>Python, Java, C++, JavaScript &amp; Web Dev</p>
       </a>
       <a href="networking.html" class="cat-card fade-up">
-        <div class="cat-img"><img src="https://img.freepik.com/free-vector/network-mesh-wire-digital-technology-background_1017-27428.jpg"></div>
+        <div class="cat-img"><img src="https://img.freepik.com/free-vector/network-mesh-wire-digital-technology-background_1017-27428.jpg" alt="Networking"></div>
         <h4>Networking</h4>
         <p>TCP/IP, Network Security, Cloud Computing</p>
       </a>
       <a href="ai.html" class="cat-card fade-up">
         <span class="cat-badge">Trending</span>
-        <div class="cat-img"><img src="https://img.freepik.com/free-vector/ai-technology-microchip-background-vector-digital-transformation-concept_53876-112222.jpg"></div>
-        <h4>AI & Machine Learning</h4>
+        <div class="cat-img"><img src="https://img.freepik.com/free-vector/ai-technology-microchip-background-vector-digital-transformation-concept_53876-112222.jpg" alt="AI"></div>
+        <h4>AI &amp; Machine Learning</h4>
         <p>Deep Learning, NLP, Computer Vision</p>
       </a>
       <a href="database.html" class="cat-card fade-up">
-        <div class="cat-img"><img src="https://img.freepik.com/free-vector/data-inform-illustration-concept_114360-864.jpg"></div>
+        <div class="cat-img"><img src="https://img.freepik.com/free-vector/data-inform-illustration-concept_114360-864.jpg" alt="Database"></div>
         <h4>Database Systems</h4>
         <p>SQL, MongoDB, PostgreSQL, Redis</p>
       </a>
       <a href="cybersecurity.html" class="cat-card fade-up">
-        <div class="cat-img"><img src="https://img.freepik.com/free-vector/cyber-security-concept_23-2148532223.jpg"></div>
+        <div class="cat-img"><img src="https://img.freepik.com/free-vector/cyber-security-concept_23-2148532223.jpg" alt="Cybersecurity"></div>
         <h4>Cybersecurity</h4>
         <p>Ethical Hacking, Cryptography, Firewalls</p>
       </a>
@@ -707,13 +768,25 @@
   </div>
 </section>
 
+<!-- RECOMMENDATIONS -->
+<section id="recommendationsSection" style="display:none;padding:60px 5%">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-label">For You</div>
+      <h2 class="sec-title">✨ Recommended For You</h2>
+      <p class="sec-sub">Based on your browsing history</p>
+    </div>
+    <div class="books-grid" id="recommendationsGrid"></div>
+  </div>
+</section>
+
 <!-- DOWNLOADS -->
 <section id="downloads" class="downloads-section">
   <div class="container">
     <div class="sec-head">
       <div class="sec-label">Library</div>
       <h2 class="sec-title">📥 Download Section</h2>
-      <p class="sec-sub">All free books & your purchased books ready to download</p>
+      <p class="sec-sub">All free books &amp; your purchased books ready to download</p>
     </div>
     <div class="dl-grid" id="dlGrid"></div>
   </div>
@@ -723,14 +796,16 @@
 <section id="about" class="about">
   <div class="container">
     <div class="about-inner">
-      <div class="about-img fade-up"><img src="https://www.activemarketing.com/wp-content/uploads/2014/03/ebook-image-800.jpg" alt="About"></div>
+      <div class="about-img fade-up">
+        <img src="https://www.activemarketing.com/wp-content/uploads/2014/03/ebook-image-800.jpg" alt="About">
+      </div>
       <div class="about-content fade-up">
         <div class="sec-label">About Us</div>
         <h2>Why Choose Virtual E-Book?</h2>
         <p>We provide the best collection of Computer Science e-books for college and university students.</p>
         <div class="feature-list">
           <div class="feature-item"><i class='bx bx-check-circle'></i> 5000+ Premium CS E-Books</div>
-          <div class="feature-item"><i class='bx bx-check-circle'></i> Download & Read Offline</div>
+          <div class="feature-item"><i class='bx bx-check-circle'></i> Download &amp; Read Offline</div>
           <div class="feature-item"><i class='bx bx-check-circle'></i> Updated Content Every Month</div>
           <div class="feature-item"><i class='bx bx-check-circle'></i> All Major Payment Options</div>
           <div class="feature-item"><i class='bx bx-check-circle'></i> 24/7 Student Support</div>
@@ -788,18 +863,12 @@
         <div class="form-group"><label>Email</label><input type="email" id="cEmail" placeholder="your@email.com"></div>
         <div class="form-group"><label>Phone</label><input type="tel" id="cPhone" placeholder="10 digit number"></div>
         <div class="form-group"><label>Message</label><textarea id="cMsg" placeholder="Write your message..."></textarea></div>
-
-        <!-- ✅ Send button with loading state -->
-        <button class="submit-btn" id="contactSubmitBtn" onclick="sendContact()">
-          📨 Send Message
-        </button>
-
-        <!-- ✅ Feedback message shown after sending -->
+        <button class="submit-btn" id="contactSubmitBtn" onclick="sendContact()">📨 Send Message</button>
         <div class="contact-msg" id="contactMsg"></div>
       </div>
       <div class="fade-up">
         <h3 style="font-family:'Cormorant Garamond',serif;font-size:28px;margin-bottom:20px">Contact Info</h3>
-        <div class="info-item"><div class="info-icon"><i class='bx bx-envelope'></i></div><div class="info-text"><h5>Email</h5><p><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="c9bfa0bbbdbca8a5acaba6a6a289aea4a8a0a5e7aaa6a4">[email&#160;protected]</a></p></div></div>
+        <div class="info-item"><div class="info-icon"><i class='bx bx-envelope'></i></div><div class="info-text"><h5>Email</h5><p>htgautam2003@gmail.com</p></div></div>
         <div class="info-item"><div class="info-icon"><i class='bx bx-phone'></i></div><div class="info-text"><h5>Phone</h5><p>+91 9835473590</p></div></div>
         <div class="info-item"><div class="info-icon"><i class='bx bx-map'></i></div><div class="info-text"><h5>Address</h5><p>Patna, Bihar, India</p></div></div>
         <div class="info-item"><div class="info-icon"><i class='bx bx-time'></i></div><div class="info-text"><h5>Support Hours</h5><p>Mon–Sat: 9AM – 8PM</p></div></div>
@@ -837,14 +906,14 @@
       <ul>
         <li><a href="computer.html">Computer Science</a></li>
         <li><a href="programming.html">Programming</a></li>
-        <li><a href="ai.html">AI & ML</a></li>
+        <li><a href="ai.html">AI &amp; ML</a></li>
         <li><a href="database.html">Databases</a></li>
         <li><a href="networking.html">Networking</a></li>
       </ul>
     </div>
     <div class="footer-col">
       <h4>Contact</h4>
-      <p>📧htgautam2003@gmail.com<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a9c1ddcec8dcddc8c49b99999ae9cec4c8c0c587cac6c4">[email&#160;protected]</a></p><br>
+      <p>📧 htgautam2003@gmail.com</p><br>
       <p>📞 +91 9835473590</p><br>
       <p>📍 Patna, Bihar, India</p><br>
       <p>🕐 Mon–Sat: 9AM – 8PM</p>
@@ -856,220 +925,288 @@
   </div>
 </footer>
 
-<!-- ✅ RAZORPAY SCRIPT -->
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<!-- ===== SCRIPTS — ORDER MATTERS, DO NOT CHANGE ===== -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
-<!-- ✅ MAIN JS -->
+<!-- Firebase (type=module is required) -->
+<script type="module" src="firebase-config.js"></script>
+<script type="module" src="auth.js"></script>
+<script type="module" src="wishlist.js"></script>
+
+<!-- Your main JS -->
 <script src="my.js"></script>
 
-<!-- ✅ AUTH + CONTACT JAVASCRIPT -->
+<!-- Page logic (runs AFTER my.js) -->
 <script>
-  let currentUser = JSON.parse(localStorage.getItem('veb_user') || 'null');
+/* ══════════════════════════════════════════════════
+   CONTACT FORM
+══════════════════════════════════════════════════ */
+function sendContact() {
+  var name  = document.getElementById('cName').value.trim();
+  var email = document.getElementById('cEmail').value.trim();
+  var phone = document.getElementById('cPhone').value.trim();
+  var msg   = document.getElementById('cMsg').value.trim();
+  var btn   = document.getElementById('contactSubmitBtn');
 
-  /* ─────────────────────────────────────────────
-     ✅ CONTACT FORM — EMAIL SENDING (EmailJS)
-  ───────────────────────────────────────────── */
-  function sendContact() {
-    const name  = document.getElementById('cName').value.trim();
-    const email = document.getElementById('cEmail').value.trim();
-    const phone = document.getElementById('cPhone').value.trim();
-    const msg   = document.getElementById('cMsg').value.trim();
-    const btn   = document.getElementById('contactSubmitBtn');
-    const msgEl = document.getElementById('contactMsg');
+  hideContactMsg();
+  if (!name)  { showContactMsg('Please enter your full name.', 'error'); return; }
+  if (!email) { showContactMsg('Please enter your email address.', 'error'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showContactMsg('Please enter a valid email.', 'error'); return; }
+  if (!msg)   { showContactMsg('Please write a message.', 'error'); return; }
 
-    // Hide any previous message
-    msgEl.className = 'contact-msg';
-    msgEl.style.display = 'none';
+  btn.textContent = '⏳ Sending...';
+  btn.disabled = true;
 
-    // Validation
-    if (!name) { showContactMsg('⚠️ Please enter your full name.', 'error'); return; }
-    if (!email) { showContactMsg('⚠️ Please enter your email address.', 'error'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showContactMsg('⚠️ Please enter a valid email address.', 'error'); return; }
-    if (!msg) { showContactMsg('⚠️ Please write a message before sending.', 'error'); return; }
-
-    // Show sending state
-    btn.textContent = '⏳ Sending...';
-    btn.disabled = true;
-
-    // ✅ Send email via EmailJS
-    emailjs.send(
-      "YOUR_SERVICE_ID",    // 🔁 Replace with your EmailJS Service ID
-      "YOUR_TEMPLATE_ID",   // 🔁 Replace with your EmailJS Template ID
-      {
-        from_name:  name,
-        from_email: email,
-        phone:      phone || 'Not provided',
-        message:    msg,
-        to_email:   "virtualebook@gmail.com"  // your receiving email
-      }
-    )
-    .then(function() {
-      // ✅ Success
-      showContactMsg('✅ Message sent successfully! We\'ll reply within 24 hours.', 'success');
-      // Clear all fields
-      document.getElementById('cName').value  = '';
-      document.getElementById('cEmail').value = '';
-      document.getElementById('cPhone').value = '';
-      document.getElementById('cMsg').value   = '';
-      btn.textContent = '📨 Send Message';
-      btn.disabled = false;
-      if (typeof showToast === 'function') showToast('📨 Message sent successfully!');
-    })
-    .catch(function(error) {
-      // ❌ Error
-      console.error('EmailJS Error:', error);
-      showContactMsg('❌ Failed to send message. Please try again or email us directly.', 'error');
-      btn.textContent = '📨 Send Message';
-      btn.disabled = false;
-    });
-  }
-
-  function showContactMsg(text, type) {
-    const el = document.getElementById('contactMsg');
-    el.textContent = text;
-    el.className = 'contact-msg ' + type;
-    el.style.display = 'flex';
-    // Auto-hide success message after 6 seconds
-    if (type === 'success') {
-      setTimeout(() => { el.style.display = 'none'; }, 6000);
-    }
-  }
-
-  /* ─────────────────────────────────────────────
-     AUTH MODAL
-  ───────────────────────────────────────────── */
-  function openAuthModal(tab = 'login') {
-    switchAuthTab(tab);
-    clearAuthMsg();
-    document.getElementById('authModalOverlay').classList.add('open');
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeAuthModal() {
-    document.getElementById('authModalOverlay').classList.remove('open');
-    document.body.style.overflow = '';
-  }
-
-  document.getElementById('authModalOverlay').addEventListener('click', function(e) {
-    if (e.target === this) closeAuthModal();
+  emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', {
+    from_name:  name,
+    from_email: email,
+    phone:      phone || 'Not provided',
+    message:    msg,
+    to_email:   'htgautam2003@gmail.com'
+  })
+  .then(function() {
+    showContactMsg('Message sent successfully! We will reply within 24 hours.', 'success');
+    document.getElementById('cName').value  = '';
+    document.getElementById('cEmail').value = '';
+    document.getElementById('cPhone').value = '';
+    document.getElementById('cMsg').value   = '';
+    btn.textContent = '📨 Send Message';
+    btn.disabled = false;
+  })
+  .catch(function() {
+    showContactMsg('Failed to send. Please email us directly at htgautam2003@gmail.com', 'error');
+    btn.textContent = '📨 Send Message';
+    btn.disabled = false;
   });
+}
 
-  function switchAuthTab(tab) {
-    const isLogin = tab === 'login';
-    document.getElementById('authLoginForm').style.display  = isLogin ? 'block' : 'none';
-    document.getElementById('authSignupForm').style.display = isLogin ? 'none'  : 'block';
-    document.getElementById('tabLogin').classList.toggle('active', isLogin);
-    document.getElementById('tabSignup').classList.toggle('active', !isLogin);
-    document.getElementById('authSubtitle').textContent = isLogin
-      ? 'Welcome back! Please sign in.'
-      : 'Create your free account today.';
-    clearAuthMsg();
+function showContactMsg(text, type) {
+  var el = document.getElementById('contactMsg');
+  el.textContent = text;
+  el.className = 'contact-msg ' + type;
+  if (type === 'success') setTimeout(hideContactMsg, 6000);
+}
+function hideContactMsg() {
+  var el = document.getElementById('contactMsg');
+  el.className = 'contact-msg';
+  el.style.display = 'none';
+}
+
+/* ══════════════════════════════════════════════════
+   AUTH MODAL
+══════════════════════════════════════════════════ */
+function openAuthModal(tab) {
+  switchAuthTab(tab || 'login');
+  clearAuthMsg();
+  document.getElementById('authModalOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAuthModal() {
+  document.getElementById('authModalOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('authModalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeAuthModal();
+});
+
+function switchAuthTab(tab) {
+  var isLogin = tab === 'login';
+  document.getElementById('authLoginForm').style.display  = isLogin ? 'block' : 'none';
+  document.getElementById('authSignupForm').style.display = isLogin ? 'none'  : 'block';
+  document.getElementById('tabLogin').classList.toggle('active',  isLogin);
+  document.getElementById('tabSignup').classList.toggle('active', !isLogin);
+  document.getElementById('authSubtitle').textContent = isLogin
+    ? 'Welcome back! Please sign in.'
+    : 'Create your free account today.';
+  clearAuthMsg();
+}
+
+function showAuthMsg(msg, type) {
+  var el = document.getElementById('authMsg');
+  el.textContent = msg;
+  el.className = 'auth-msg ' + (type || 'error');
+}
+
+function clearAuthMsg() {
+  var el = document.getElementById('authMsg');
+  el.textContent = '';
+  el.className = 'auth-msg';
+}
+
+function togglePassVis(inputId, btn) {
+  var inp  = document.getElementById(inputId);
+  var icon = btn.querySelector('i');
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    icon.className = 'bx bx-show';
+  } else {
+    inp.type = 'password';
+    icon.className = 'bx bx-hide';
   }
+}
 
-  function showAuthMsg(msg, type = 'error') {
-    const el = document.getElementById('authMsg');
-    el.textContent = msg;
-    el.className = 'auth-msg ' + type;
-    el.style.display = 'block';
+/* ── LOGIN ── */
+function doLogin() {
+  var email = document.getElementById('loginEmail').value.trim();
+  var pass  = document.getElementById('loginPassword').value;
+  clearAuthMsg();
+  if (!email || !pass) { showAuthMsg('Please fill in all fields.'); return; }
+  if (!isValidEmail(email)) { showAuthMsg('Please enter a valid email address.'); return; }
+
+  var users = JSON.parse(localStorage.getItem('veb_users') || '[]');
+  var user  = users.find(function(u) { return u.email === email; });
+  if (!user)                        { showAuthMsg('No account found. Please sign up first.'); return; }
+  if (user.password !== btoa(pass)) { showAuthMsg('Incorrect password. Try again.'); return; }
+  loginSuccess(user);
+}
+
+/* ── SIGNUP ── */
+function doSignup() {
+  var name    = document.getElementById('signupName').value.trim();
+  var email   = document.getElementById('signupEmail').value.trim();
+  var pass    = document.getElementById('signupPassword').value;
+  var confirm = document.getElementById('signupConfirm').value;
+  clearAuthMsg();
+  if (!name || !email || !pass || !confirm) { showAuthMsg('Please fill in all fields.'); return; }
+  if (!isValidEmail(email))  { showAuthMsg('Please enter a valid email.'); return; }
+  if (pass.length < 6)       { showAuthMsg('Password must be at least 6 characters.'); return; }
+  if (pass !== confirm)      { showAuthMsg('Passwords do not match.'); return; }
+
+  var users = JSON.parse(localStorage.getItem('veb_users') || '[]');
+  if (users.find(function(u) { return u.email === email; })) {
+    showAuthMsg('An account with this email already exists.'); return;
   }
+  var newUser = { name: name, email: email, password: btoa(pass), joined: new Date().toLocaleDateString('en-IN') };
+  users.push(newUser);
+  localStorage.setItem('veb_users', JSON.stringify(users));
+  showAuthMsg('Account created! Logging you in...', 'success');
+  setTimeout(function() { loginSuccess(newUser); }, 900);
+}
 
-  function clearAuthMsg() {
-    const el = document.getElementById('authMsg');
-    el.style.display = 'none';
-    el.textContent = '';
+/* ── GOOGLE LOGIN — calls Firebase auth.js ── */
+function handleGoogleLogin() {
+  var s = document.createElement('script');
+  s.type = 'module';
+  s.textContent = "import { googleLogin } from './auth.js'; googleLogin().catch(function(e){ console.error(e); });";
+  document.body.appendChild(s);
+  setTimeout(function() { s.remove(); }, 2000);
+}
+
+/* ── SOCIAL (placeholder) ── */
+function socialAuth(provider) {
+  showAuthMsg(provider + ' login coming soon! Use email for now.', 'success');
+}
+
+/* ── FORGOT PASSWORD ── */
+function showForgot() {
+  var email = document.getElementById('loginEmail').value.trim();
+  if (!email) { showAuthMsg('Enter your email above first, then click Forgot password.', 'error'); return; }
+  var s = document.createElement('script');
+  s.type = 'module';
+  s.textContent = "import { forgotPassword } from './auth.js'; forgotPassword('" + email + "').catch(function(e){ console.error(e); });";
+  document.body.appendChild(s);
+  setTimeout(function() { s.remove(); }, 2000);
+  showAuthMsg('Password reset email sent! Check your inbox.', 'success');
+}
+
+/* ── LOGIN SUCCESS ── */
+function loginSuccess(user) {
+  localStorage.setItem('veb_user', JSON.stringify(user));
+  closeAuthModal();
+  updateNavForUser(user);
+  if (typeof showToast === 'function') showToast('Welcome, ' + user.name.split(' ')[0] + '!');
+}
+
+/* ── LOGOUT ── */
+function doLogout() {
+  localStorage.removeItem('veb_user');
+  updateNavForGuest();
+  toggleDropdown(true);
+  if (typeof showToast === 'function') showToast('Logged out. See you soon!');
+  /* Also sign out from Firebase */
+  var s = document.createElement('script');
+  s.type = 'module';
+  s.textContent = "import { auth } from './firebase-config.js'; import { signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js'; signOut(auth).catch(function(){});";
+  document.body.appendChild(s);
+  setTimeout(function() { s.remove(); }, 2000);
+}
+
+/* ── NAV UPDATE ── */
+function updateNavForUser(user) {
+  document.getElementById('authBtns').style.display = 'none';
+  var ud = document.getElementById('userDropdown');
+  ud.style.display = 'flex';
+  ud.classList.add('visible');
+  var initials = user.name.split(' ').map(function(n) { return n[0]; }).join('').slice(0,2).toUpperCase();
+  document.getElementById('userAvatarInitial').textContent = initials;
+  document.getElementById('userDisplayName').textContent   = user.name.split(' ')[0];
+}
+
+function updateNavForGuest() {
+  document.getElementById('authBtns').style.display = 'flex';
+  var ud = document.getElementById('userDropdown');
+  ud.style.display = 'none';
+  ud.classList.remove('visible');
+}
+
+/* ── DROPDOWN ── */
+function toggleDropdown(forceClose) {
+  var menu = document.getElementById('dropdownMenu');
+  if (forceClose) { menu.classList.remove('open'); return; }
+  menu.classList.toggle('open');
+}
+
+/* ── CLOSE DROPDOWN ON OUTSIDE CLICK ── */
+document.addEventListener('click', function(e) {
+  var ud = document.getElementById('userDropdown');
+  if (ud && !ud.contains(e.target)) {
+    document.getElementById('dropdownMenu').classList.remove('open');
   }
+});
 
-  function togglePassVis(inputId, btn) {
-    const inp = document.getElementById(inputId);
-    const icon = btn.querySelector('i');
-    if (inp.type === 'password') {
-      inp.type = 'text';
-      icon.className = 'bx bx-show';
-    } else {
-      inp.type = 'password';
-      icon.className = 'bx bx-hide';
+/* ── EMAIL VALIDATOR ── */
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+/* ── RESTORE SESSION ON PAGE LOAD ── */
+document.addEventListener('DOMContentLoaded', function() {
+  var saved = localStorage.getItem('veb_user');
+  if (saved) {
+    try {
+      var user = JSON.parse(saved);
+      if (user && user.name) updateNavForUser(user);
+    } catch(e) {
+      localStorage.removeItem('veb_user');
     }
   }
 
-  function doLogin() {
-    const email    = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    clearAuthMsg();
-    if (!email || !password) { showAuthMsg('Please fill in all fields.'); return; }
-    if (!isValidEmail(email)) { showAuthMsg('Please enter a valid email address.'); return; }
-    const users = JSON.parse(localStorage.getItem('veb_users') || '[]');
-    const user = users.find(u => u.email === email);
-    if (!user) { showAuthMsg('No account found with this email. Please sign up first.'); return; }
-    if (user.password !== btoa(password)) { showAuthMsg('Incorrect password. Please try again.'); return; }
-    loginSuccess(user);
+  /* Init EmailJS */
+  if (typeof emailjs !== 'undefined') {
+    emailjs.init('YOUR_EMAILJS_PUBLIC_KEY');
   }
+});
 
-  function doSignup() {
-    const name     = document.getElementById('signupName').value.trim();
-    const email    = document.getElementById('signupEmail').value.trim();
-    const password = document.getElementById('signupPassword').value;
-    const confirm  = document.getElementById('signupConfirm').value;
-    clearAuthMsg();
-    if (!name || !email || !password || !confirm) { showAuthMsg('Please fill in all fields.'); return; }
-    if (!isValidEmail(email)) { showAuthMsg('Please enter a valid email address.'); return; }
-    if (password.length < 6) { showAuthMsg('Password must be at least 6 characters.'); return; }
-    if (password !== confirm) { showAuthMsg('Passwords do not match.'); return; }
-    const users = JSON.parse(localStorage.getItem('veb_users') || '[]');
-    if (users.find(u => u.email === email)) { showAuthMsg('An account with this email already exists.'); return; }
-    const newUser = { name, email, password: btoa(password), joined: new Date().toLocaleDateString('en-IN') };
-    users.push(newUser);
-    localStorage.setItem('veb_users', JSON.stringify(users));
-    showAuthMsg('Account created successfully! Logging you in...', 'success');
-    setTimeout(() => loginSuccess(newUser), 900);
-  }
+/* ── EXPOSE TO WINDOW (needed because type=module scripts are scoped) ── */
+window.openAuthModal  = openAuthModal;
+window.closeAuthModal = closeAuthModal;
+window.switchAuthTab  = switchAuthTab;
+window.doLogin        = doLogin;
+window.doSignup       = doSignup;
+window.doLogout       = doLogout;
+window.socialAuth     = socialAuth;
+window.handleGoogleLogin = handleGoogleLogin;
+window.showForgot     = showForgot;
+window.toggleDropdown = toggleDropdown;
+window.togglePassVis  = togglePassVis;
+window.sendContact    = sendContact;
+window.loginSuccess   = loginSuccess;
+/* openCheckout, openDownloads, toggleCart, openModal, closeModal,
+   processPayment, switchPay, addNewBook, adminLogin, filterBooks,
+   searchBooks, toggleNav — all defined in my.js */
+</script>
 
-  function socialAuth(provider) {
-    showAuthMsg(`${provider} login coming soon! Use email/password for now.`, 'success');
-  }
-
-  function showForgot() {
-    showAuthMsg('Password reset link feature coming soon!', 'success');
-  }
-
-  function loginSuccess(user) {
-    currentUser = user;
-    localStorage.setItem('veb_user', JSON.stringify(user));
-    closeAuthModal();
-    updateNavForUser(user);
-    if (typeof showToast === 'function') showToast(`Welcome back, ${user.name.split(' ')[0]}! 👋`);
-  }
-
-  function doLogout() {
-    currentUser = null;
-    localStorage.removeItem('veb_user');
-    updateNavForGuest();
-    toggleDropdown(true);
-    if (typeof showToast === 'function') showToast('Logged out successfully. See you soon! 👋');
-  }
-
-  function updateNavForUser(user) {
-    document.getElementById('authBtns').style.display = 'none';
-    const ud = document.getElementById('userDropdown');
-    ud.style.display = 'flex';
-    ud.classList.add('visible');
-    const initials = user.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
-    document.getElementById('userAvatarInitial').textContent = initials;
-    document.getElementById('userDisplayName').textContent   = user.name.split(' ')[0];
-  }
-
-  function updateNavForGuest() {
-    document.getElementById('authBtns').style.display = 'flex';
-    const ud = document.getElementById('userDropdown');
-    ud.style.display = 'none';
-    ud.classList.remove('visible');
-  }
-
-  function toggleDropdown(forceClose = false) {
-    const menu = document.getElementById('dropdownMenu');
-    if (forceClose) { menu.classList.remove('open'); return; }
-    menu.classList.toggle('open');
-  }
-
-  document.addEventListener('click', function(e)) {
-    const ud = document.getElementById
-  }
+</body>
+</html>

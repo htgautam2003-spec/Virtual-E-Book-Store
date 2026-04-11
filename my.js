@@ -341,7 +341,7 @@ async function sendOrderConfirmationEmail(customerName, customerEmail, orderId, 
       total_amount:   total === 0 ? "FREE" : "₹" + total,
       book_list:      bookList,
       order_date:     new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),
-      support_email:  "virtualebook@gmail.com"
+      support_email:  "htgautam2003@gmail.com"
     });
   } catch (err) {
     console.warn("Order email failed silently:", err);
