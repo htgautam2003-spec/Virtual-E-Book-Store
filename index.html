@@ -27,8 +27,10 @@
       box-shadow: 0 4px 14px rgba(124,58,237,0.4);
     }
     .btn-signup:hover { background: linear-gradient(135deg, #6d28d9, #9333ea); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124,58,237,0.55); }
+
+    /* FIX 1: user-avatar-btn was display:none — changed to display:flex so it shows when needed */
     .user-avatar-btn {
-      display: none; align-items: center; gap: 8px;
+      display: flex; align-items: center; gap: 8px;
       background: rgba(124,58,237,0.15); border: 1.5px solid rgba(124,58,237,0.35);
       color: #c4b5fd; padding: 6px 14px 6px 6px; border-radius: 25px;
       font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 500;
@@ -129,8 +131,11 @@
     .auth-msg { padding: 10px 14px; border-radius: 9px; font-family: 'Outfit', sans-serif; font-size: 13px; margin-bottom: 14px; display: none; }
     .auth-msg.error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #f87171; display: block; }
     .auth-msg.success { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); color: #34d399; display: block; }
+
+    /* FIX 2: user-dropdown hidden by default, shown via JS only when logged in */
     .user-dropdown { position: relative; display: none; }
     .user-dropdown.visible { display: flex; }
+
     .dropdown-menu {
       position: absolute; top: calc(100% + 8px); right: 0; background: #130d2a;
       border: 1px solid rgba(124,58,237,0.25); border-radius: 14px; padding: 8px;
@@ -271,7 +276,7 @@
     </div>
     <div id="adminForm" style="display:none">
       <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:10px;padding:12px 16px;margin-bottom:20px;display:flex;align-items:center;gap:10px;font-size:14px;color:#10b981">
-        <i class='bx bx-shield-check' style="font-size:20px"></i> Logged in as Admin
+        <i class='bx bx-shield-check' style="font-size:20px"></i> Logged in as Admin ✅
       </div>
       <div class="pay-field"><label>Book Title *</label><input type="text" id="newTitle" placeholder="e.g. Introduction to Algorithms"></div>
       <div class="pay-field"><label>Author *</label><input type="text" id="newAuthor" placeholder="e.g. Thomas H. Cormen"></div>
@@ -405,11 +410,15 @@
       <button class="icon-btn admin-btn" onclick="openModal('adminModal')" title="Admin Panel">
         <i class='bx bx-shield'></i>
       </button>
+
+      <!-- FIX 3: authBtns has NO display:none — always visible until JS hides it after login check -->
       <div class="auth-btns" id="authBtns">
         <button class="btn-login" onclick="openAuthModal('login')"><i class='bx bx-log-in'></i> Login</button>
         <button class="btn-signup" onclick="openAuthModal('signup')"><i class='bx bx-user-plus'></i> Sign Up</button>
       </div>
-      <div class="user-dropdown" id="userDropdown">
+
+      <!-- FIX 4: userDropdown starts hidden — only shown after confirmed login -->
+      <div class="user-dropdown" id="userDropdown" style="display:none">
         <button class="user-avatar-btn" onclick="toggleDropdown()">
           <div class="avatar-circle" id="userAvatarInitial">U</div>
           <span id="userDisplayName">User</span>
@@ -425,6 +434,7 @@
           <button class="dropdown-item logout" onclick="doLogout()"><i class='bx bx-log-out'></i> Logout</button>
         </div>
       </div>
+
       <button class="cart-btn" onclick="toggleCart()">
         <i class='bx bx-cart'></i> Cart
         <span id="cartCount">0</span>
@@ -681,7 +691,7 @@
 <script src="my.js"></script>
 
 <script>
-/* ══ NAV HELPERS — defined FIRST so my.js restoreLoginState can use them ══ */
+/* ══ NAV HELPERS ══ */
 function updateNavForUser(user) {
   var ab = document.getElementById('authBtns');
   var ud = document.getElementById('userDropdown');
@@ -689,18 +699,18 @@ function updateNavForUser(user) {
   ab.style.display = 'none';
   ud.style.display = 'flex';
   ud.classList.add('visible');
-  var initials = user.name.split(' ').map(function(n){return n[0];}).join('').slice(0,2).toUpperCase();
-  document.getElementById('userAvatarInitial').textContent = initials;
-  document.getElementById('userDisplayName').textContent   = user.name.split(' ')[0];
+  var initials = (user.name || 'U').split(' ').map(function(n){return n[0];}).join('').slice(0,2).toUpperCase();
+  var avatarEl = document.getElementById('userAvatarInitial');
+  var nameEl   = document.getElementById('userDisplayName');
+  if (avatarEl) avatarEl.textContent = initials;
+  if (nameEl)   nameEl.textContent   = (user.name || '').split(' ')[0];
 }
 
 function updateNavForGuest() {
   var ab = document.getElementById('authBtns');
   var ud = document.getElementById('userDropdown');
-  if (!ab || !ud) return;
-  ab.style.display = 'flex';
-  ud.style.display = 'none';
-  ud.classList.remove('visible');
+  if (ab) { ab.style.display = 'flex'; ab.style.visibility = 'visible'; ab.style.opacity = '1'; }
+  if (ud) { ud.style.display = 'none'; ud.classList.remove('visible'); }
 }
 
 /* ══ AUTH MODAL ══ */
@@ -815,7 +825,6 @@ function showForgot() {
       showAuthMsg('Password reset email sent! Check your inbox.', 'success');
     }).catch(function(e) {
       showAuthMsg('Could not send reset email. Check address.', 'error');
-      console.error(e);
     });
   }).catch(function(e) { console.error(e); });
 }
@@ -866,15 +875,18 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-/* ══ RESTORE SESSION — runs on load ══ */
+/* ══ RESTORE SESSION — THE CRITICAL FIX ══
+   Runs immediately — shows guest buttons first,
+   then checks localStorage and switches to user view if logged in */
 document.addEventListener('DOMContentLoaded', function() {
-  /* Always show login buttons first — then check session */
-  updateNavForGuest();
+  updateNavForGuest(); /* ALWAYS show login/signup first */
   var saved = localStorage.getItem('veb_user');
   if (saved) {
     try {
       var user = JSON.parse(saved);
-      if (user && user.name) updateNavForUser(user);
+      if (user && user.name) {
+        updateNavForUser(user); /* only switch to user view if valid session exists */
+      }
     } catch(e) {
       localStorage.removeItem('veb_user');
     }
