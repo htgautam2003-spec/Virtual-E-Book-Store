@@ -13,18 +13,16 @@ let books        = [];
 let adminLoggedIn = false;
 let currentFilter = "all";
 
-// ✅ FIX 1 — was missing, caused login/signup to crash
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-// ✅ FIX 2 — restore user session on page refresh
+// ✅ FIXED — no longer calls updateNavForUser directly
+// nav is handled entirely by index.html DOMContentLoaded
 function restoreLoginState() {
-  const stored = JSON.parse(localStorage.getItem("veb_user") || "null");
-  if (stored) updateNavForUser(stored);
+  // do nothing here — index.html handles nav restore
 }
 
-// ✅ FIX 3 — book cards now animate when scrolled into view
 function setupFadeObserver() {
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((e) => {
@@ -42,8 +40,8 @@ document.addEventListener("DOMContentLoaded", () => {
   renderDownloadSection();
   updateCartCount();
   updateDlCount();
-  setupFadeObserver();   // ✅ added
-  restoreLoginState();   // ✅ added
+  setupFadeObserver();
+  // ✅ nav restore is handled by index.html — do NOT call it here
 });
 
 async function loadBooks() {
@@ -161,7 +159,6 @@ function filterBooks(tag, btn) {
   renderBooks(tag);
 }
 
-// ✅ FIX 4 — search now checks author too
 function searchBooks() {
   const q = (document.getElementById("searchInput")?.value || "").toLowerCase();
   document.querySelectorAll(".book-card").forEach(c => {
@@ -276,7 +273,6 @@ async function processPayment(method) {
     return;
   }
 
-  // ✅ FIX 5 — free cart skips Razorpay
   if (total === 0) {
     await saveRazorpayOrder(method, "FREE-" + Date.now(), customerName, customerEmail, 0);
     return;
@@ -537,7 +533,6 @@ async function addNewBook() {
   }, 500);
 }
 
-// ✅ FIX 6 — single sendContact, no duplicate
 function sendContact() {
   const name  = document.getElementById("cName").value.trim();
   const email = document.getElementById("cEmail").value.trim();
@@ -546,14 +541,14 @@ function sendContact() {
   const btn   = document.getElementById("contactSubmitBtn");
   const msgEl = document.getElementById("contactMsg");
   msgEl.className = "contact-msg"; msgEl.style.display = "none";
-  if (!name)                { showContactMsg("⚠️ Please enter your name.", "error");          return; }
-  if (!isValidEmail(email)) { showContactMsg("⚠️ Please enter a valid email.", "error");      return; }
-  if (!msg)                 { showContactMsg("⚠️ Please write a message.", "error");           return; }
+  if (!name)                { showContactMsg("⚠️ Please enter your name.", "error");     return; }
+  if (!isValidEmail(email)) { showContactMsg("⚠️ Please enter a valid email.", "error"); return; }
+  if (!msg)                 { showContactMsg("⚠️ Please write a message.", "error");     return; }
   btn.textContent = "⏳ Sending..."; btn.disabled = true;
   emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_CONTACT_TID, {
     from_name: name, from_email: email,
     phone: phone || "Not provided", message: msg,
-    to_email: "virtualebook@gmail.com"
+    to_email: "htgautam2003@gmail.com"
   })
   .then(() => {
     showContactMsg("✅ Message sent! We'll reply within 24 hours.", "success");
@@ -574,20 +569,28 @@ function showContactMsg(text, type) {
   if (type === "success") setTimeout(() => el.style.display = "none", 6000);
 }
 
-// needed by index.html auth script
+// ✅ FIXED — updateNavForUser and updateNavForGuest
+// these are also defined in index.html as window.* 
+// my.js versions are kept for compatibility
 function updateNavForUser(user) {
-  document.getElementById("authBtns").style.display = "none";
+  const ab = document.getElementById("authBtns");
   const ud = document.getElementById("userDropdown");
-  ud.style.display = "flex"; ud.classList.add("visible");
+  if (!ab || !ud) return;
+  ab.style.display = "none";
+  ud.style.display = "flex";
+  ud.classList.add("visible");
   const initials = user.name.split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase();
   document.getElementById("userAvatarInitial").textContent = initials;
   document.getElementById("userDisplayName").textContent   = user.name.split(" ")[0];
 }
 
 function updateNavForGuest() {
-  document.getElementById("authBtns").style.display = "flex";
+  const ab = document.getElementById("authBtns");
   const ud = document.getElementById("userDropdown");
-  ud.style.display = "none"; ud.classList.remove("visible");
+  if (!ab || !ud) return;
+  ab.style.display = "flex";
+  ud.style.display = "none";
+  ud.classList.remove("visible");
 }
 
 document.addEventListener("DOMContentLoaded", () => {
