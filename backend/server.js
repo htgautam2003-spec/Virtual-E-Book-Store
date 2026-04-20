@@ -139,6 +139,9 @@ const User = mongoose.model("User", UserSchema);
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../index.html"));
 });
+app.get("/report", (req, res) => {
+  res.sendFile(path.join(__dirname, "../report.html"));
+});
 
 // API check
 app.get("/api", (req, res) => {
