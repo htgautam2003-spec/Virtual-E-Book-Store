@@ -412,8 +412,27 @@ let allOrders = [], allBooks = [], allUsers = [], filteredOrders = [];
 
 // ── ADMIN GATE ──────────────────────────────────────────
 function checkGate() {
-  const pass = document.getElementById("gatePass").value;
-  if (pass === "admin123") {
+  const pass  = document.getElementById("gatePass").value;
+  const saved = localStorage.getItem("veb_user");
+  const user  = saved ? JSON.parse(saved) : null;
+
+  // Check both password AND admin email
+  if (pass === "admin123" && user && 
+      user.email === "htgautam2003@gmail.com") {
+    document.getElementById("adminGate").style.display = "none";
+    document.getElementById("mainDash").style.display  = "block";
+    loadAllData();
+    showToast("✅ Welcome Admin!", "success");
+  } else if (pass === "admin123" && (!user || user.email !== "htgautam2003@gmail.com")) {
+    showToast("❌ You must be logged in as admin!", "error");
+    setTimeout(() => {
+      window.location.href = "/";
+    }, 2000);
+  } else {
+    showToast("❌ Wrong password!", "error");
+    document.getElementById("gatePass").value = "";
+  }
+}
     document.getElementById("adminGate").style.display = "none";
     document.getElementById("mainDash").style.display = "block";
     loadAllData();
