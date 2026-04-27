@@ -270,6 +270,7 @@ function switchPay(type, btn) {
 async function processPayment(method) {
   const customerName  = document.getElementById("customerName")?.value.trim();
   const customerEmail = document.getElementById("customerEmail")?.value.trim();
+  const customerPhone = document.getElementById("customerPhone")?.value.trim();
   if (!customerName)  { showToast("❌ Please enter your name!", "error");         return; }
   if (!customerEmail || !isValidEmail(customerEmail)) {
     showToast("❌ Please enter valid email!", "error"); return;
@@ -282,14 +283,14 @@ async function processPayment(method) {
     if (!codEmail || !isValidEmail(codEmail)) {
       showToast("❌ Enter valid COD email!", "error"); return;
     }
-    closeModal("payModal");
+   await saveRazorpayOrder(method, "COD-" + Date.now(), customerName, customerEmail, customerPhone, total);
     await saveRazorpayOrder(method, "COD-" + Date.now(), customerName, customerEmail, total);
     return;
   }
 
   // ── FREE books — instant success ─────────────────────
   if (total === 0) {
-    closeModal("payModal");
+    await saveRazorpayOrder(method, "FREE-" + Date.now(), customerName, customerEmail, customerPhone, 0);
     await saveRazorpayOrder(method, "FREE-" + Date.now(), customerName, customerEmail, 0);
     return;
   }
@@ -310,7 +311,7 @@ async function processPayment(method) {
       theme:       { color: "#7c3aed" },
       handler: async function(response) {
         // Payment successful — show order success
-        const paymentId = response.razorpay_payment_id || "PAY-" + Date.now();
+        await saveRazorpayOrder(method, paymentId, customerName, customerEmail, customerPhone, total);
         await saveRazorpayOrder(method, paymentId, customerName, customerEmail, total);
       },
       modal: {
@@ -360,7 +361,7 @@ async function sendOrderConfirmationEmail(customerName, customerEmail, orderId, 
 // ═══════════════════════════════════════════════════════
 // saveRazorpayOrder — saves order and shows success modal
 // ═══════════════════════════════════════════════════════
-async function saveRazorpayOrder(method, paymentId, customerName, customerEmail, total) {
+async function saveRazorpayOrder(method, paymentId, customerName, customerEmail, customerPhone, total) {
   try {
     // Save to backend (silent fail if offline)
     await fetch(`${API}/api/orders`, {
@@ -374,6 +375,7 @@ async function saveRazorpayOrder(method, paymentId, customerName, customerEmail,
         status:        "completed",
         customerName,
         customerEmail
+        customerphone
       })
     }).catch(() => {}); // silent fail — don't block success screen
 
