@@ -375,7 +375,7 @@ async function saveRazorpayOrder(method, paymentId, customerName, customerEmail,
         status:        "completed",
         customerName,
         customerEmail
-        customerphone
+        customerphone,
       })
     }).catch(() => {}); // silent fail — don't block success screen
 
