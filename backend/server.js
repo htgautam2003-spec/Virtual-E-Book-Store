@@ -6,7 +6,7 @@ const path       = require("path");
 const nodemailer = require("nodemailer");
 const Razorpay   = require("razorpay");
 const crypto     = require("crypto");
-const twilio     = require("twilio");        // ✅ NEW — WhatsApp
+const twilio     = require("twilio");
 
 // ✅ MUST be first before anything else
 dotenv.config();
@@ -18,12 +18,12 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, "../")));
 
-// ── MONGODB ───────────────────────────────────
+// ── MONGODB ───────────────────────────────────────────
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected!"))
   .catch((err) => console.log("❌ MongoDB Error:", err));
 
-// ── NODEMAILER SETUP ──────────────────────────
+// ── NODEMAILER SETUP ──────────────────────────────────
 const transporter = nodemailer.createTransport({
   host:   "smtp.gmail.com",
   port:   587,
@@ -36,123 +36,15 @@ const transporter = nodemailer.createTransport({
   family: 4
 });
 
-// ── TWILIO WHATSAPP CLIENT ────────────────────
+// ── TWILIO WHATSAPP CLIENT ────────────────────────────
 const twilioClient = twilio(
   process.env.TWILIO_ACCOUNT_SID,
   process.env.TWILIO_AUTH_TOKEN
 );
 
-// ════════════════════════════════════════════════
-//  EMAIL FUNCTIONS
-// ════════════════════════════════════════════════
-
-// ── ORDER CONFIRMATION EMAIL ──────────────────
-async function sendOrderConfirmationEmail(customerEmail, customerName, order) {
-  const bookList = order.books.map(b => `
-    <tr>
-      <td style="padding:8px;border:1px solid #ddd;">${b.title}</td>
-      <td style="padding:8px;border:1px solid #ddd;">${b.qty}</td>
-      <td style="padding:8px;border:1px solid #ddd;">₹${b.price}</td>
-      <td style="padding:8px;border:1px solid #ddd;">₹${b.price * b.qty}</td>
-    </tr>`).join("");
-
-  const mailOptions = {
-    from:    `"📚 eBook Store" <${process.env.EMAIL_USER}>`,
-    to:      customerEmail,
-    subject: `✅ Order Confirmed! - Order ID: ${order.orderId}`,
-    html: `
-      <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;border:1px solid #ddd;border-radius:10px;padding:20px;">
-        <h2 style="color:#4CAF50;text-align:center;">📚 Order Confirmation</h2>
-        <p>Hi <strong>${customerName}</strong>,</p>
-        <p>Thank you for your purchase! Your order has been placed successfully.</p>
-        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-          <thead>
-            <tr style="background:#f2f2f2;">
-              <th style="padding:8px;border:1px solid #ddd;">Book</th>
-              <th style="padding:8px;border:1px solid #ddd;">Qty</th>
-              <th style="padding:8px;border:1px solid #ddd;">Price</th>
-              <th style="padding:8px;border:1px solid #ddd;">Subtotal</th>
-            </tr>
-          </thead>
-          <tbody>${bookList}</tbody>
-        </table>
-        <br/>
-        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-          <tr><td style="padding:6px;"><strong>Order ID:</strong></td><td>${order.orderId}</td></tr>
-          <tr><td style="padding:6px;"><strong>Payment:</strong></td><td>${order.paymentMethod}</td></tr>
-          <tr><td style="padding:6px;"><strong>Total:</strong></td><td><strong>₹${order.totalAmount}</strong></td></tr>
-          <tr><td style="padding:6px;"><strong>Status:</strong></td><td style="color:green;"><strong>✅ Completed</strong></td></tr>
-          <tr><td style="padding:6px;"><strong>Date:</strong></td><td>${new Date().toLocaleDateString("en-IN")}</td></tr>
-        </table>
-        <br/>
-        <p style="color:#888;font-size:13px;text-align:center;">Thank you for shopping with us! 🙏</p>
-      </div>`,
-  };
-
-  await transporter.sendMail(mailOptions);
-  console.log("📧 Email sent to:", customerEmail);
-}
-
-// ── CONTACT FORM EMAIL ────────────────────────
-async function sendContactEmail(name, email, phone, message) {
-  const mailOptions = {
-    from:    `"📚 eBook Store" <${process.env.EMAIL_USER}>`,
-    to:      process.env.EMAIL_USER,
-    subject: `📩 New Contact Message from ${name}`,
-    html: `
-      <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;border:1px solid #ddd;border-radius:10px;padding:20px;">
-        <h2 style="color:#7c3aed;">📩 New Contact Message</h2>
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Phone:</strong> ${phone || "Not provided"}</p>
-        <p><strong>Message:</strong></p>
-        <p style="background:#f9f9f9;padding:12px;border-radius:8px;">${message}</p>
-      </div>`,
-  };
-  await transporter.sendMail(mailOptions);
-  console.log("📧 Contact email received from:", email);
-}
-
-// ════════════════════════════════════════════════
-//  ✅ NEW — WHATSAPP FUNCTION
-// ════════════════════════════════════════════════
-async function sendWhatsAppMessage(customerPhone, customerName, order) {
-  try {
-    // Clean phone number — remove spaces, dashes, +91 prefix if present
-    const cleanPhone = customerPhone
-      .toString()
-      .replace(/\s+/g, "")
-      .replace(/^(\+91|91)/, "");
-
-    const bookTitles = order.books.map(b => `• ${b.title}`).join("\n");
-
-    const message = await twilioClient.messages.create({
-      from: process.env.TWILIO_WHATSAPP_FROM,
-      to:   `whatsapp:+91${cleanPhone}`,
-      body:
-        `✅ *Order Confirmed!*\n\n` +
-        `Hi ${customerName}! 👋\n\n` +
-        `📚 *Books Ordered:*\n${bookTitles}\n\n` +
-        `🧾 *Order ID:* ${order.orderId}\n` +
-        `💳 *Payment:* ${order.paymentMethod}\n` +
-        `💰 *Total:* ₹${order.totalAmount}\n` +
-        `📅 *Date:* ${new Date().toLocaleDateString("en-IN")}\n\n` +
-        `Thank you for shopping with us! 🙏\n` +
-        `📚 *Virtual E-Book Store*`
-    });
-
-    console.log("✅ WhatsApp sent! SID:", message.sid);
-    return true;
-  } catch (err) {
-    // Don't crash the whole order if WhatsApp fails
-    console.error("❌ WhatsApp error:", err.message);
-    return false;
-  }
-}
-
-// ════════════════════════════════════════════════
-//  SCHEMAS
-// ════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════
+// SCHEMAS
+// ═════════════════════════════════════════════════════
 const BookSchema = new mongoose.Schema({
   title:       { type: String, required: true },
   author:      { type: String, required: true },
@@ -167,29 +59,161 @@ const BookSchema = new mongoose.Schema({
 const Book = mongoose.model("Book", BookSchema);
 
 const OrderSchema = new mongoose.Schema({
-  books:         [{ title: String, price: Number, qty: Number }],
-  totalAmount:   Number,
-  paymentMethod: String,
-  orderId:       { type: String, unique: true },
-  customerName:  String,
-  customerEmail: String,
-  customerPhone: String,    // ✅ NEW — for WhatsApp
+  books:         { type: Array, default: [] },
+  totalAmount:   { type: Number, default: 0 },
+  paymentMethod: { type: String, default: "Razorpay" },
+  orderId:       { type: String, unique: true, sparse: true },
+  customerName:  { type: String, default: "" },
+  customerEmail: { type: String, default: "" },
+  customerPhone: { type: String, default: "" },
   status:        { type: String, default: "completed" }
 }, { timestamps: true });
 const Order = mongoose.model("Order", OrderSchema);
 
 const UserSchema = new mongoose.Schema({
-  name:  String,
-  email: String
+  name:     String,
+  email:    { type: String, unique: true, sparse: true },
+  photo:    String,
+  provider: String,
 }, { timestamps: true });
 const User = mongoose.model("User", UserSchema);
 
-// ════════════════════════════════════════════════
-//  ROUTES
-// ════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════
+// EMAIL FUNCTIONS
+// ═════════════════════════════════════════════════════
+async function sendOrderConfirmationEmail(customerEmail, customerName, order) {
+  try {
+    const books    = order.books || [];
+    const bookList = books.length > 0
+      ? books.map(b => `
+          <tr>
+            <td style="padding:8px;border:1px solid #ddd;">${b.title || "Book"}</td>
+            <td style="padding:8px;border:1px solid #ddd;">${b.qty || 1}</td>
+            <td style="padding:8px;border:1px solid #ddd;">₹${b.price || 0}</td>
+            <td style="padding:8px;border:1px solid #ddd;">₹${(b.price || 0) * (b.qty || 1)}</td>
+          </tr>`).join("")
+      : `<tr><td colspan="4" style="padding:8px;text-align:center;">Books purchased</td></tr>`;
 
-// ── FIX 1: HEALTH ROUTE (prevents Render cold start) ──
-// Set cron-job.org to ping this every 14 minutes for free
+    const mailOptions = {
+      from:    `"📚 eBook Store" <${process.env.EMAIL_USER}>`,
+      to:      customerEmail,
+      subject: `✅ Order Confirmed! - Order ID: ${order.orderId}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;border:1px solid #ddd;border-radius:10px;padding:20px;">
+          <h2 style="color:#4CAF50;text-align:center;">📚 Order Confirmation</h2>
+          <p>Hi <strong>${customerName}</strong>,</p>
+          <p>Thank you for your purchase! Your order has been placed successfully.</p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+            <thead>
+              <tr style="background:#f2f2f2;">
+                <th style="padding:8px;border:1px solid #ddd;">Book</th>
+                <th style="padding:8px;border:1px solid #ddd;">Qty</th>
+                <th style="padding:8px;border:1px solid #ddd;">Price</th>
+                <th style="padding:8px;border:1px solid #ddd;">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>${bookList}</tbody>
+          </table>
+          <br/>
+          <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+            <tr><td style="padding:6px;"><strong>Order ID:</strong></td><td>${order.orderId || "N/A"}</td></tr>
+            <tr><td style="padding:6px;"><strong>Payment:</strong></td><td>${order.paymentMethod || "Online"}</td></tr>
+            <tr><td style="padding:6px;"><strong>Total:</strong></td><td><strong>₹${order.totalAmount || 0}</strong></td></tr>
+            <tr><td style="padding:6px;"><strong>Status:</strong></td><td style="color:green;"><strong>✅ Completed</strong></td></tr>
+            <tr><td style="padding:6px;"><strong>Date:</strong></td><td>${new Date().toLocaleDateString("en-IN")}</td></tr>
+          </table>
+          <br/>
+          <p style="color:#888;font-size:13px;text-align:center;">Thank you for shopping with us! 🙏</p>
+        </div>`,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log("📧 Email sent to:", customerEmail);
+  } catch (err) {
+    console.error("❌ Email failed:", err.message);
+  }
+}
+
+async function sendContactEmail(name, email, phone, message) {
+  try {
+    const mailOptions = {
+      from:    `"📚 eBook Store" <${process.env.EMAIL_USER}>`,
+      to:      process.env.EMAIL_USER,
+      subject: `📩 New Contact Message from ${name}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;border:1px solid #ddd;border-radius:10px;padding:20px;">
+          <h2 style="color:#7c3aed;">📩 New Contact Message</h2>
+          <p><strong>Name:</strong> ${name}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Phone:</strong> ${phone || "Not provided"}</p>
+          <p><strong>Message:</strong></p>
+          <p style="background:#f9f9f9;padding:12px;border-radius:8px;">${message}</p>
+        </div>`,
+    };
+    await transporter.sendMail(mailOptions);
+    console.log("📧 Contact email received from:", email);
+  } catch (err) {
+    console.error("❌ Contact email failed:", err.message);
+  }
+}
+
+// ═════════════════════════════════════════════════════
+// ✅ WHATSAPP FUNCTION
+// ═════════════════════════════════════════════════════
+async function sendWhatsAppMessage(customerPhone, customerName, order) {
+  try {
+    console.log("📱 Attempting WhatsApp to:", customerPhone);
+    console.log("TWILIO_SID:",   process.env.TWILIO_ACCOUNT_SID  ? "✅ Loaded" : "❌ Missing");
+    console.log("TWILIO_TOKEN:", process.env.TWILIO_AUTH_TOKEN    ? "✅ Loaded" : "❌ Missing");
+    console.log("TWILIO_FROM:",  process.env.TWILIO_WHATSAPP_FROM ? "✅ Loaded" : "❌ Missing");
+
+    // Clean phone number — remove spaces, +91 prefix
+    const cleanPhone = customerPhone
+      .toString()
+      .replace(/\s+/g, "")
+      .replace(/^(\+91|91)/, "");
+
+    console.log("📱 Sending to: +91" + cleanPhone);
+
+    // Build book list
+    const books      = order.books || [];
+    const bookTitles = books.length > 0
+      ? books.map(b => `• ${b.title}`).join("\n")
+      : "• Books purchased";
+
+    const message = await twilioClient.messages.create({
+      from: process.env.TWILIO_WHATSAPP_FROM,
+      to:   `whatsapp:+91${cleanPhone}`,
+      body:
+        `🎉 *Order Confirmed!*\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n` +
+        `🏪 *Virtual E-Book Store*\n\n` +
+        `Hello *${customerName}*! 👋\n\n` +
+        `Your order has been placed successfully!\n\n` +
+        `📚 *Books Ordered:*\n${bookTitles}\n\n` +
+        `🧾 *Order ID:* ${order.orderId || "N/A"}\n` +
+        `💳 *Payment:* ${order.paymentMethod || "Online"}\n` +
+        `💰 *Total:* ${order.totalAmount === 0 ? "FREE 🎁" : `₹${order.totalAmount} ✅`}\n` +
+        `📅 *Date:* ${new Date().toLocaleDateString("en-IN")}\n\n` +
+        `📧 Check your email for confirmation!\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n` +
+        `Thank you for shopping! 🙏\n` +
+        `📚 *Virtual E-Book Store*`
+    });
+
+    console.log("✅ WhatsApp sent! SID:", message.sid);
+    return true;
+  } catch (err) {
+    console.error("❌ WhatsApp error:", err.message);
+    return false;
+  }
+}
+
+// ═════════════════════════════════════════════════════
+// ROUTES
+// ═════════════════════════════════════════════════════
+
+// ── HEALTH ROUTE ──────────────────────────────────────
 app.get("/health", (req, res) => {
   res.json({
     status: "ok",
@@ -198,7 +222,7 @@ app.get("/health", (req, res) => {
   });
 });
 
-// ── STATIC PAGES ──────────────────────────────
+// ── STATIC PAGES ──────────────────────────────────────
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../index.html"));
 });
@@ -206,7 +230,7 @@ app.get("/report", (req, res) => {
   res.sendFile(path.join(__dirname, "../report.html"));
 });
 
-// ── FIX 6: ROBOTS.TXT ─────────────────────────
+// ── ROBOTS.TXT ────────────────────────────────────────
 app.get("/robots.txt", (req, res) => {
   res.type("text/plain");
   res.send(
@@ -216,7 +240,7 @@ app.get("/robots.txt", (req, res) => {
   );
 });
 
-// ── FIX 6: SITEMAP.XML ────────────────────────
+// ── SITEMAP.XML ───────────────────────────────────────
 app.get("/sitemap.xml", (req, res) => {
   const base = "https://virtual-e-book-store.onrender.com";
   res.type("application/xml");
@@ -230,13 +254,12 @@ app.get("/sitemap.xml", (req, res) => {
   );
 });
 
-// ── API CHECK ─────────────────────────────────
+// ── API CHECK ─────────────────────────────────────────
 app.get("/api", (req, res) => {
   res.json({ message: "📚 API is running!" });
 });
 
-// ── FIX 3: LIVE STATS ─────────────────────────
-// Replaces fake "5K+ E-Books" and "12K+ Students"
+// ── LIVE STATS ────────────────────────────────────────
 app.get("/api/stats", async (req, res) => {
   try {
     const [bookCount, userCount, orderCount, revenueData] = await Promise.all([
@@ -258,9 +281,7 @@ app.get("/api/stats", async (req, res) => {
   }
 });
 
-// ── BOOK ROUTES ───────────────────────────────
-
-// Get all books with optional sort & limit
+// ── BOOK ROUTES ───────────────────────────────────────
 app.get("/api/books", async (req, res) => {
   try {
     const { sort, limit } = req.query;
@@ -274,14 +295,11 @@ app.get("/api/books", async (req, res) => {
   }
 });
 
-// FIX 2: Featured books for homepage Popular section
 app.get("/api/books/featured", async (req, res) => {
   try {
     let books = await Book.find({
       tag: { $in: ["popular", "featured", "new", "premium"] }
     }).sort({ createdAt: -1 }).limit(8);
-
-    // Fallback — if no featured tags yet, show latest 8
     if (books.length === 0) {
       books = await Book.find().sort({ createdAt: -1 }).limit(8);
     }
@@ -291,12 +309,9 @@ app.get("/api/books/featured", async (req, res) => {
   }
 });
 
-// FIX 2: Recent books — replaces empty "Recommended For You"
 app.get("/api/books/recent", async (req, res) => {
   try {
-    const books = await Book.find()
-      .sort({ createdAt: -1 })
-      .limit(6);
+    const books = await Book.find().sort({ createdAt: -1 }).limit(6);
     res.json(books);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -334,13 +349,15 @@ app.delete("/api/books/:id", async (req, res) => {
   }
 });
 
-// ── ORDER ROUTES ──────────────────────────────
+// ── ORDER ROUTES ──────────────────────────────────────
 app.post("/api/orders", async (req, res) => {
   try {
+    console.log("📦 New order:", req.body.customerName, "| Phone:", req.body.customerPhone);
+
     const order = new Order(req.body);
     await order.save();
 
-    // ✅ Send Email confirmation
+    // ✅ Send Email
     if (req.body.customerEmail) {
       await sendOrderConfirmationEmail(
         req.body.customerEmail,
@@ -349,7 +366,7 @@ app.post("/api/orders", async (req, res) => {
       );
     }
 
-    // ✅ Send WhatsApp confirmation
+    // ✅ Send WhatsApp
     if (req.body.customerPhone) {
       await sendWhatsAppMessage(
         req.body.customerPhone,
@@ -379,10 +396,9 @@ app.get("/api/orders", async (req, res) => {
   }
 });
 
-// ── USER ROUTES ───────────────────────────────
+// ── USER ROUTES ───────────────────────────────────────
 app.post("/api/users", async (req, res) => {
   try {
-    // Prevent duplicate users
     const existing = await User.findOne({ email: req.body.email });
     if (existing) {
       return res.status(200).json({ message: "✅ User exists", user: existing });
@@ -404,7 +420,7 @@ app.get("/api/users", async (req, res) => {
   }
 });
 
-// ── CONTACT ROUTE ─────────────────────────────
+// ── CONTACT ROUTE ─────────────────────────────────────
 app.post("/api/contact", async (req, res) => {
   try {
     const { name, email, phone, message } = req.body;
@@ -421,30 +437,25 @@ app.post("/api/contact", async (req, res) => {
   }
 });
 
-// ── PAYMENT ROUTES ────────────────────────────
+// ── PAYMENT ROUTES ────────────────────────────────────
 app.post("/api/payment/create-order", async (req, res) => {
   try {
     const { amount } = req.body;
-
-    // Free books — skip Razorpay
     if (!amount || amount === 0) {
       return res.json({
         success: true,
         order: { id: "FREE-" + Date.now(), amount: 0, currency: "INR" }
       });
     }
-
     const razorpay = new Razorpay({
       key_id:     process.env.RAZORPAY_KEY_ID,
       key_secret: process.env.RAZORPAY_KEY_SECRET,
     });
-
     const order = await razorpay.orders.create({
       amount:   amount * 100,
       currency: "INR",
       receipt:  `receipt_${Date.now()}`,
     });
-
     res.status(200).json({ success: true, order });
   } catch (err) {
     console.error("Payment error:", err);
@@ -454,44 +465,30 @@ app.post("/api/payment/create-order", async (req, res) => {
 
 app.post("/api/payment/verify-payment", (req, res) => {
   try {
-    const {
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature
-    } = req.body;
-
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
     const sign = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(sign)
       .digest("hex");
-
     if (expectedSignature !== razorpay_signature) {
-      return res.status(400).json({
-        success: false,
-        message: "❌ Invalid signature"
-      });
+      return res.status(400).json({ success: false, message: "❌ Invalid signature" });
     }
-
     res.status(200).json({ success: true, message: "✅ Payment verified!" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
-// ════════════════════════════════════════════════
-//  FIX 8: CUSTOM 404 — MUST be the very last route
-// ════════════════════════════════════════════════
+// ── CUSTOM 404 — Must be last ─────────────────────────
 app.use((req, res) => {
-  // API routes → JSON error
   if (req.path.startsWith("/api/")) {
     return res.status(404).json({ message: "❌ Route not found" });
   }
-  // All other routes → custom 404 HTML page
   res.status(404).sendFile(path.join(__dirname, "../404.html"));
 });
 
-// ── START SERVER ──────────────────────────────
+// ── START SERVER ──────────────────────────────────────
 app.listen(PORT, () => {
   console.log("🚀 Server running on http://localhost:" + PORT);
   console.log("❤️  Health:    http://localhost:" + PORT + "/health");
