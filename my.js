@@ -2,21 +2,18 @@ const API = "https://virtual-e-book-store.onrender.com";
 
 // ═══════════════════════════════════════════════════════
 // EMAILJS KEYS — Go to emailjs.com and replace these
-// Step 1: emailjs.com → sign up → Add Service → Gmail
-// Step 2: Email Templates → Create → Save
-// Step 3: Account → copy Public Key
 // ═══════════════════════════════════════════════════════
-const EMAILJS_PUBLIC_KEY  = "YOUR_PUBLIC_KEY";   // ← paste from emailjs.com Account page
-const EMAILJS_SERVICE_ID  = "YOUR_SERVICE_ID";   // ← paste from EmailJS Services page
-const EMAILJS_CONTACT_TID = "YOUR_TEMPLATE_ID";  // ← paste from EmailJS Templates page
-const EMAILJS_ORDER_TID   = "YOUR_TEMPLATE_ID";  // ← same template ID is fine for now
+const EMAILJS_PUBLIC_KEY  = "YOUR_PUBLIC_KEY";
+const EMAILJS_SERVICE_ID  = "YOUR_SERVICE_ID";
+const EMAILJS_CONTACT_TID = "YOUR_TEMPLATE_ID";
+const EMAILJS_ORDER_TID   = "YOUR_TEMPLATE_ID";
 
-// Safe EmailJS init — won't crash if key is missing
+// Safe EmailJS init
 try { emailjs.init(EMAILJS_PUBLIC_KEY); } catch(e) {}
 
-let cart      = JSON.parse(localStorage.getItem("ebookCart")      || "[]");
-let downloads = JSON.parse(localStorage.getItem("ebookDownloads") || "[]");
-let books        = [];
+let cart          = JSON.parse(localStorage.getItem("ebookCart")      || "[]");
+let downloads     = JSON.parse(localStorage.getItem("ebookDownloads") || "[]");
+let books         = [];
 let adminLoggedIn = false;
 let currentFilter = "all";
 
@@ -24,9 +21,7 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function restoreLoginState() {
-  // nav is handled entirely by index.html DOMContentLoaded
-}
+function restoreLoginState() {}
 
 function setupFadeObserver() {
   const observer = new IntersectionObserver((entries) => {
@@ -48,6 +43,9 @@ document.addEventListener("DOMContentLoaded", () => {
   setupFadeObserver();
 });
 
+// ═══════════════════════════════════════════════════════
+// LOAD BOOKS FROM BACKEND
+// ═══════════════════════════════════════════════════════
 async function loadBooks() {
   try {
     const res = await fetch(`${API}/api/books`);
@@ -113,6 +111,9 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+// ═══════════════════════════════════════════════════════
+// RENDER BOOKS
+// ═══════════════════════════════════════════════════════
 function renderBooks(filter) {
   filter = filter || currentFilter;
   const grid = document.getElementById("booksGrid");
@@ -172,6 +173,9 @@ function searchBooks() {
   });
 }
 
+// ═══════════════════════════════════════════════════════
+// CART FUNCTIONS
+// ═══════════════════════════════════════════════════════
 function toggleCart() {
   document.getElementById("cartSidebar").classList.toggle("open");
   document.getElementById("cartOverlay").classList.toggle("open");
@@ -241,6 +245,9 @@ function updateCartCount() {
   if (el) { el.textContent = total; el.style.display = total > 0 ? "flex" : "none"; }
 }
 
+// ═══════════════════════════════════════════════════════
+// CHECKOUT
+// ═══════════════════════════════════════════════════════
 function openCheckout() {
   if (!cart.length) { showToast("🛒 Cart is empty!", "error"); return; }
   const items = cart.map(i => `
@@ -264,17 +271,21 @@ function switchPay(type, btn) {
 }
 
 // ═══════════════════════════════════════════════════════
-// FIXED processPayment — shows success screen properly
-// for UPI, Card, COD and FREE books
+// PROCESS PAYMENT — Fixed with customerPhone
 // ═══════════════════════════════════════════════════════
 async function processPayment(method) {
   const customerName  = document.getElementById("customerName")?.value.trim();
   const customerEmail = document.getElementById("customerEmail")?.value.trim();
   const customerPhone = document.getElementById("customerPhone")?.value.trim();
-  if (!customerName)  { showToast("❌ Please enter your name!", "error");         return; }
+
+  if (!customerName)  { showToast("❌ Please enter your name!", "error"); return; }
   if (!customerEmail || !isValidEmail(customerEmail)) {
     showToast("❌ Please enter valid email!", "error"); return;
   }
+  if (!customerPhone || customerPhone.length < 10) {
+    showToast("❌ Please enter valid WhatsApp number!", "error"); return;
+  }
+
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
 
   // ── COD ──────────────────────────────────────────────
@@ -283,36 +294,33 @@ async function processPayment(method) {
     if (!codEmail || !isValidEmail(codEmail)) {
       showToast("❌ Enter valid COD email!", "error"); return;
     }
-   await saveRazorpayOrder(method, "COD-" + Date.now(), customerName, customerEmail, customerPhone, total);
-    await saveRazorpayOrder(method, "COD-" + Date.now(), customerName, customerEmail, total);
+    closeModal("payModal");
+    await saveRazorpayOrder(method, "COD-" + Date.now(), customerName, customerEmail, customerPhone, total);
     return;
   }
 
   // ── FREE books — instant success ─────────────────────
   if (total === 0) {
+    closeModal("payModal");
     await saveRazorpayOrder(method, "FREE-" + Date.now(), customerName, customerEmail, customerPhone, 0);
-    await saveRazorpayOrder(method, "FREE-" + Date.now(), customerName, customerEmail, 0);
     return;
   }
 
   // ── PAID — open Razorpay popup ───────────────────────
-  // FIX: removed backend create-order call that was failing
-  // Now opens Razorpay directly with amount — works without backend
   try {
-    closeModal("payModal"); // close BEFORE opening Razorpay so success screen shows
+    closeModal("payModal");
 
     const options = {
       key:         "rzp_live_SYKdilpCIN2G9A",
-      amount:      total * 100, // amount in paise
+      amount:      total * 100,
       currency:    "INR",
       name:        "Virtual E-Book Store",
       description: "Book Purchase",
-      prefill:     { name: customerName, email: customerEmail },
+      prefill:     { name: customerName, email: customerEmail, contact: customerPhone },
       theme:       { color: "#7c3aed" },
       handler: async function(response) {
-        // Payment successful — show order success
+        const paymentId = response.razorpay_payment_id || "PAY-" + Date.now();
         await saveRazorpayOrder(method, paymentId, customerName, customerEmail, customerPhone, total);
-        await saveRazorpayOrder(method, paymentId, customerName, customerEmail, total);
       },
       modal: {
         ondismiss: () => showToast("❌ Payment cancelled!", "error")
@@ -323,16 +331,14 @@ async function processPayment(method) {
   } catch (err) {
     console.error("Payment error:", err);
     showToast("❌ Something went wrong! Try COD instead.", "error");
-    openModal("payModal"); // reopen if Razorpay fails
+    openModal("payModal");
   }
 }
 
 // ═══════════════════════════════════════════════════════
-// FIXED sendOrderConfirmationEmail
-// — safely skips if EmailJS keys are not set yet
+// SEND ORDER CONFIRMATION EMAIL — via EmailJS
 // ═══════════════════════════════════════════════════════
 async function sendOrderConfirmationEmail(customerName, customerEmail, orderId, method, total, cartItems) {
-  // Skip if keys are not set up yet
   if (EMAILJS_PUBLIC_KEY === "YOUR_PUBLIC_KEY" ||
       EMAILJS_SERVICE_ID === "YOUR_SERVICE_ID") {
     console.log("EmailJS not configured yet — skipping email");
@@ -352,18 +358,18 @@ async function sendOrderConfirmationEmail(customerName, customerEmail, orderId, 
       order_date:     new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),
       support_email:  "htgautam2003@gmail.com"
     });
-    console.log("Order confirmation email sent!");
+    console.log("✅ Order confirmation email sent!");
   } catch (err) {
     console.warn("Order email failed silently:", err);
   }
 }
 
 // ═══════════════════════════════════════════════════════
-// saveRazorpayOrder — saves order and shows success modal
+// SAVE ORDER — Fixed with customerPhone for WhatsApp
 // ═══════════════════════════════════════════════════════
 async function saveRazorpayOrder(method, paymentId, customerName, customerEmail, customerPhone, total) {
   try {
-    // Save to backend (silent fail if offline)
+    // Save to backend — triggers email + WhatsApp automatically!
     await fetch(`${API}/api/orders`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -373,13 +379,13 @@ async function saveRazorpayOrder(method, paymentId, customerName, customerEmail,
         paymentMethod: method,
         orderId:       paymentId,
         status:        "completed",
-        customerName,
-        customerEmail
-        customerphone,
+        customerName:  customerName,
+        customerEmail: customerEmail,
+        customerPhone: customerPhone,
       })
-    }).catch(() => {}); // silent fail — don't block success screen
+    }).catch(() => {});
 
-    // Send confirmation email (silent fail if not configured)
+    // Send confirmation email via EmailJS
     await sendOrderConfirmationEmail(customerName, customerEmail, paymentId, method, total, [...cart]);
 
     // Add purchased books to downloads
@@ -393,7 +399,7 @@ async function saveRazorpayOrder(method, paymentId, customerName, customerEmail,
     updateDlCount();
     renderDownloadSection();
 
-    // Build success screen content
+    // Build success screen
     document.getElementById("successDetails").innerHTML = `
       <div style="display:flex;justify-content:space-between;margin-bottom:8px">
         <span>Order ID</span>
@@ -408,6 +414,10 @@ async function saveRazorpayOrder(method, paymentId, customerName, customerEmail,
         <span style="color:#a78bfa;font-weight:700">${customerEmail}</span>
       </div>
       <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span>WhatsApp</span>
+        <span style="color:#a78bfa;font-weight:700">${customerPhone}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
         <span>Payment</span>
         <span style="color:#10b981;font-weight:700">${method}</span>
       </div>
@@ -415,9 +425,9 @@ async function saveRazorpayOrder(method, paymentId, customerName, customerEmail,
         <span>Total Paid</span>
         <span style="color:#a78bfa;font-weight:700">${total === 0 ? "FREE" : "₹" + total}</span>
       </div>
-      <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px;font-size:13px;color:#34d399;">
-        <span>📧</span>
-        <span>Confirmation sent to <strong>${customerEmail}</strong></span>
+      <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:10px 12px;font-size:13px;color:#34d399;">
+        <span>📧 Email sent to <strong>${customerEmail}</strong></span><br/>
+        <span>📱 WhatsApp sent to <strong>${customerPhone}</strong></span>
       </div>`;
 
     // Show success modal
@@ -432,7 +442,6 @@ async function saveRazorpayOrder(method, paymentId, customerName, customerEmail,
 
   } catch (err) {
     console.error("Order save error:", err);
-    // Even if backend fails — still show success to user
     openModal("successModal");
     showToast("✅ Order placed!", "success");
     cart = [];
@@ -524,6 +533,9 @@ function openDownloads() {
   openModal("downloadModal");
 }
 
+// ═══════════════════════════════════════════════════════
+// ADMIN FUNCTIONS
+// ═══════════════════════════════════════════════════════
 function adminLogin() {
   const pass = document.getElementById("adminPass").value;
   if (pass === "admin123") {
@@ -573,7 +585,7 @@ async function addNewBook() {
 }
 
 // ═══════════════════════════════════════════════════════
-// FIXED sendContact — safely skips if EmailJS not set up
+// CONTACT FORM
 // ═══════════════════════════════════════════════════════
 function sendContact() {
   const name  = document.getElementById("cName").value.trim();
@@ -587,12 +599,8 @@ function sendContact() {
   if (!isValidEmail(email)) { showContactMsg("⚠️ Please enter a valid email.", "error"); return; }
   if (!msg)                 { showContactMsg("⚠️ Please write a message.", "error");     return; }
 
-  // If EmailJS not configured — show helpful message instead of crashing
   if (EMAILJS_PUBLIC_KEY === "YOUR_PUBLIC_KEY") {
-    showContactMsg(
-      "✅ Message received! Email us directly at htgautam2003@gmail.com",
-      "success"
-    );
+    showContactMsg("✅ Message received! Email us at htgautam2003@gmail.com", "success");
     return;
   }
 
@@ -623,6 +631,9 @@ function showContactMsg(text, type) {
   if (type === "success") setTimeout(() => el.style.display = "none", 6000);
 }
 
+// ═══════════════════════════════════════════════════════
+// NAV FUNCTIONS
+// ═══════════════════════════════════════════════════════
 function updateNavForUser(user) {
   const ab = document.getElementById("authBtns");
   const ud = document.getElementById("userDropdown");
