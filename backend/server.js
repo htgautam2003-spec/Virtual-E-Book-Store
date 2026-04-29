@@ -24,13 +24,15 @@ mongoose.connect(process.env.MONGO_URI)
   .catch((err) => console.log("❌ MongoDB Error:", err));
 
 // ── NODEMAILER SETUP ──────────────────────────────────
+// FIX: EMAIL_PASS must be a 16-char Google App Password
+// (Google Account → Security → 2-Step Verification → App Passwords)
 const transporter = nodemailer.createTransport({
   host:   "smtp.gmail.com",
   port:   587,
   secure: false,
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    pass: process.env.EMAIL_PASS,   // ← Google App Password, NOT your Gmail login password
   },
   tls: { rejectUnauthorized: false },
   family: 4
@@ -77,6 +79,22 @@ const UserSchema = new mongoose.Schema({
   provider: String,
 }, { timestamps: true });
 const User = mongoose.model("User", UserSchema);
+
+// ═════════════════════════════════════════════════════
+// HELPERS
+// ═════════════════════════════════════════════════════
+
+// FIX (Bug 4): Normalize Indian phone numbers correctly
+// Handles: 9876543210 / 919876543210 / +919876543210 / +91 98765 43210
+function normalizeIndianPhone(phone) {
+  // Remove spaces and all non-numeric/plus chars
+  let p = phone.toString().replace(/\s+/g, "").replace(/[^0-9+]/g, "");
+  // Strip country code variants
+  p = p.replace(/^\+91/, "").replace(/^91/, "");
+  // Keep only last 10 digits (handles any leftover prefix noise)
+  p = p.slice(-10);
+  return "+91" + p;
+}
 
 // ═════════════════════════════════════════════════════
 // EMAIL FUNCTIONS
@@ -130,7 +148,10 @@ async function sendOrderConfirmationEmail(customerEmail, customerName, order) {
     await transporter.sendMail(mailOptions);
     console.log("📧 Email sent to:", customerEmail);
   } catch (err) {
+    // FIX (Bug 5): Log full error details, not just message
     console.error("❌ Email failed:", err.message);
+    console.error("❌ Email error code:", err.code);
+    console.error("❌ Email response:", err.response);
   }
 }
 
@@ -154,26 +175,27 @@ async function sendContactEmail(name, email, phone, message) {
     console.log("📧 Contact email received from:", email);
   } catch (err) {
     console.error("❌ Contact email failed:", err.message);
+    console.error("❌ Contact email error code:", err.code);
   }
 }
 
 // ═════════════════════════════════════════════════════
-// ✅ WHATSAPP FUNCTION
+// WHATSAPP FUNCTION
+// FIX (Bug 2): Single unified function — removed duplicate
+// FIX (Bug 4): Uses normalizeIndianPhone() for correct number format
+// FIX (Bug 5): Logs full Twilio error code + moreInfo URL
 // ═════════════════════════════════════════════════════
 async function sendWhatsAppMessage(customerPhone, customerName, order) {
   try {
+    // Log credential status on startup
     console.log("📱 Attempting WhatsApp to:", customerPhone);
     console.log("TWILIO_SID:",   process.env.TWILIO_ACCOUNT_SID  ? "✅ Loaded" : "❌ Missing");
     console.log("TWILIO_TOKEN:", process.env.TWILIO_AUTH_TOKEN    ? "✅ Loaded" : "❌ Missing");
     console.log("TWILIO_FROM:",  process.env.TWILIO_WHATSAPP_FROM ? "✅ Loaded" : "❌ Missing");
 
-    // Clean phone number — remove spaces, +91 prefix
-    const cleanPhone = customerPhone
-      .toString()
-      .replace(/\s+/g, "")
-      .replace(/^(\+91|91)/, "");
-
-    console.log("📱 Sending to: +91" + cleanPhone);
+    // FIX (Bug 4): Normalize phone number — no more double +91
+    const toNumber = normalizeIndianPhone(customerPhone);
+    console.log("📱 Normalized number:", toNumber);
 
     // Build book list
     const books      = order.books || [];
@@ -181,9 +203,13 @@ async function sendWhatsAppMessage(customerPhone, customerName, order) {
       ? books.map(b => `• ${b.title}`).join("\n")
       : "• Books purchased";
 
+    // FIX (Bug 3 reminder): TWILIO_WHATSAPP_FROM must be "whatsapp:+14155238886"
+    // FIX (Bug 1 reminder): Customer must have opted into sandbox by texting
+    //   "join <your-keyword>" to +1 415 523 8886 on WhatsApp before this works.
+    //   For production, upgrade to a Twilio-approved WhatsApp sender.
     const message = await twilioClient.messages.create({
       from: process.env.TWILIO_WHATSAPP_FROM,
-      to:   `whatsapp:+91${cleanPhone}`,
+      to:   `whatsapp:${toNumber}`,
       body:
         `🎉 *Order Confirmed!*\n` +
         `━━━━━━━━━━━━━━━━━━━━\n` +
@@ -204,7 +230,11 @@ async function sendWhatsAppMessage(customerPhone, customerName, order) {
     console.log("✅ WhatsApp sent! SID:", message.sid);
     return true;
   } catch (err) {
-    console.error("❌ WhatsApp error:", err.message);
+    // FIX (Bug 5): Full Twilio error logging
+    console.error("❌ WhatsApp error code:", err.code);
+    console.error("❌ WhatsApp error message:", err.message);
+    if (err.moreInfo) console.error("❌ More info:", err.moreInfo);
+    if (err.status)   console.error("❌ HTTP status:", err.status);
     return false;
   }
 }
@@ -357,18 +387,27 @@ app.post("/api/orders", async (req, res) => {
     const order = new Order(req.body);
     await order.save();
 
+    // Track notification results
+    let emailSent    = false;
+    let whatsappSent = false;
+
     // ✅ Send Email
     if (req.body.customerEmail) {
-      await sendOrderConfirmationEmail(
-        req.body.customerEmail,
-        req.body.customerName || "Customer",
-        order
-      );
+      try {
+        await sendOrderConfirmationEmail(
+          req.body.customerEmail,
+          req.body.customerName || "Customer",
+          order
+        );
+        emailSent = true;
+      } catch (emailErr) {
+        console.error("❌ Order email error:", emailErr.message);
+      }
     }
 
     // ✅ Send WhatsApp
     if (req.body.customerPhone) {
-      await sendWhatsAppMessage(
+      whatsappSent = await sendWhatsAppMessage(
         req.body.customerPhone,
         req.body.customerName || "Customer",
         order
@@ -376,7 +415,9 @@ app.post("/api/orders", async (req, res) => {
     }
 
     res.status(201).json({
-      message: "✅ Order saved, Email & WhatsApp sent!",
+      message:      "✅ Order saved!",
+      emailSent,
+      whatsappSent,
       order
     });
   } catch (err) {
@@ -501,4 +542,11 @@ app.listen(PORT, () => {
   console.log("📩 Contact:   http://localhost:" + PORT + "/api/contact");
   console.log("💳 Payment:   http://localhost:" + PORT + "/api/payment/create-order");
   console.log("💬 WhatsApp:  Twilio integrated ✅");
+  console.log("");
+  console.log("─────────────────────────────────────────");
+  console.log("⚠️  REMINDERS:");
+  console.log("   EMAIL_PASS  → Must be a Google App Password (16 chars)");
+  console.log("   WhatsApp    → Customers must opt-in to Twilio sandbox first");
+  console.log("               → Text 'join <keyword>' to +1 415 523 8886 on WhatsApp");
+  console.log("─────────────────────────────────────────");
 });
