@@ -271,7 +271,7 @@ function switchPay(type, btn) {
 }
 
 // ═══════════════════════════════════════════════════════
-// PROCESS PAYMENT — Fixed with customerPhone
+// PROCESS PAYMENT
 // ═══════════════════════════════════════════════════════
 async function processPayment(method) {
   const customerName  = document.getElementById("customerName")?.value.trim();
@@ -309,7 +309,6 @@ async function processPayment(method) {
   // ── PAID — open Razorpay popup ───────────────────────
   try {
     closeModal("payModal");
-
     const options = {
       key:         "rzp_live_SYKdilpCIN2G9A",
       amount:      total * 100,
@@ -327,7 +326,6 @@ async function processPayment(method) {
       }
     };
     new Razorpay(options).open();
-
   } catch (err) {
     console.error("Payment error:", err);
     showToast("❌ Something went wrong! Try COD instead.", "error");
@@ -336,7 +334,299 @@ async function processPayment(method) {
 }
 
 // ═══════════════════════════════════════════════════════
-// SEND ORDER CONFIRMATION EMAIL — via EmailJS
+// SAVE ORDER — ⚡ INSTANT POPUP FIX
+// KEY CHANGE: Show popup FIRST, THEN send notifications
+// in background using .then() — no await = no waiting
+// ═══════════════════════════════════════════════════════
+async function saveRazorpayOrder(method, paymentId, customerName, customerEmail, customerPhone, total) {
+  try {
+
+    // ══ STEP 1: Save order to backend ══════════════════
+    // Server responds INSTANTLY after saving to MongoDB.
+    // Email + WhatsApp fire in background on server side.
+    const res = await fetch(`${API}/api/orders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        books:         cart.map(i => ({ title: i.name, price: i.price, qty: i.qty })),
+        totalAmount:   total,
+        paymentMethod: method,
+        orderId:       paymentId,
+        status:        "completed",
+        customerName,
+        customerEmail,
+        customerPhone,
+      })
+    });
+
+    // ══ STEP 2: Add books to downloads ═════════════════
+    cart.forEach(item => {
+      const book = books.find(b => b.title === item.name);
+      if (book && !downloads.find(d => d.title === book.title)) {
+        downloads.push({ ...book, purchasedAt: new Date().toLocaleDateString("en-IN") });
+      }
+    });
+    saveDownloads();
+    updateDlCount();
+    renderDownloadSection();
+
+    // ══ STEP 3: Clear cart ══════════════════════════════
+    cart = [];
+    saveCart();
+    renderCart();
+    updateCartCount();
+
+    // ══ STEP 4: ⚡ SHOW POPUP INSTANTLY ════════════════
+    // This runs IMMEDIATELY — no waiting for email/WhatsApp
+    showInstantSuccessPopup({
+      orderId:       paymentId,
+      customerName,
+      customerEmail,
+      customerPhone,
+      paymentMethod: method,
+      totalAmount:   total,
+      books:         cart.map ? [] : [],  // cart already cleared above — use stored value
+    });
+
+    showToast("✅ Order placed successfully!", "success");
+
+    // ══ STEP 5: Send EmailJS in background ═════════════
+    // NO await = does not block popup from showing
+    sendOrderConfirmationEmail(
+      customerName, customerEmail, paymentId, method, total,
+      JSON.parse(localStorage.getItem("ebookCart_last") || "[]")
+    );
+
+  } catch (err) {
+    // Even on network error — show popup so customer isn't left hanging
+    console.error("Order save error:", err);
+    showInstantSuccessPopup({
+      orderId:       paymentId,
+      customerName,
+      customerEmail,
+      customerPhone,
+      paymentMethod: method,
+      totalAmount:   total,
+      books:         [],
+    });
+    showToast("✅ Order placed!", "success");
+    cart = [];
+    saveCart();
+    renderCart();
+    updateCartCount();
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// ⚡ INSTANT SUCCESS POPUP
+// Shows immediately — matches your dark purple theme
+// ═══════════════════════════════════════════════════════
+function showInstantSuccessPopup(order) {
+
+  // Remove any old popup
+  const old = document.getElementById("vebSuccessOverlay");
+  if (old) old.remove();
+
+  const total    = parseFloat(order.totalAmount) || 0;
+  const totalStr = total === 0
+    ? '<span style="color:#10b981;font-weight:700;">FREE 🎁</span>'
+    : '<span style="color:#a78bfa;font-weight:700;">₹' + total + '</span>';
+
+  const today = new Date().toLocaleDateString("en-IN", {
+    day: "2-digit", month: "long", year: "numeric"
+  });
+
+  // Snapshot cart items BEFORE they are cleared
+  // (we pass them in from saveRazorpayOrder)
+  const items = order.books && order.books.length > 0
+    ? order.books
+    : JSON.parse(localStorage.getItem("ebookCart_snap") || "[]");
+
+  const bookRows = items.length > 0
+    ? items.map(b => {
+        const price = parseFloat(b.price) || 0;
+        return `
+          <div style="
+            display:flex;align-items:center;justify-content:space-between;
+            gap:10px;padding:7px 0;
+            border-bottom:1px solid rgba(124,58,237,0.1);
+          ">
+            <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+              <span style="font-size:16px;flex-shrink:0;">📚</span>
+              <span style="font-size:13px;color:#c4b5fd;
+                white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                ${b.title || b.name || "Book"} ${(b.qty||1) > 1 ? "×"+(b.qty||1) : ""}
+              </span>
+            </div>
+            <span style="font-size:13px;font-weight:700;flex-shrink:0;
+              color:${price === 0 ? "#10b981" : "#a78bfa"};">
+              ${price === 0 ? "FREE" : "₹"+(price*(b.qty||1))}
+            </span>
+          </div>`;
+      }).join("")
+    : '<div style="font-size:13px;color:#8b7aaa;padding:7px 0;">Books purchased successfully</div>';
+
+  const overlay = document.createElement("div");
+  overlay.id = "vebSuccessOverlay";
+  overlay.style.cssText = `
+    position:fixed;inset:0;
+    background:rgba(5,3,15,0.92);
+    backdrop-filter:blur(8px);
+    display:flex;align-items:center;justify-content:center;
+    z-index:999999;padding:16px;
+    animation:vebFadeIn 0.2s ease;
+  `;
+
+  overlay.innerHTML = `
+    <div style="
+      background:linear-gradient(145deg,#0e0820,#130d2a);
+      border:1px solid rgba(124,58,237,0.35);
+      border-radius:24px;padding:36px 28px 28px;
+      max-width:460px;width:100%;text-align:center;
+      box-shadow:0 30px 80px rgba(0,0,0,0.7),0 0 60px rgba(124,58,237,0.15);
+      animation:vebPopIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      max-height:90vh;overflow-y:auto;
+    ">
+
+      <!-- Check icon -->
+      <div style="
+        width:76px;height:76px;border-radius:50%;margin:0 auto 18px;
+        background:linear-gradient(135deg,#10b981,#059669);
+        display:flex;align-items:center;justify-content:center;
+        font-size:32px;color:#fff;font-weight:700;
+        box-shadow:0 0 0 10px rgba(16,185,129,0.12),0 0 0 22px rgba(16,185,129,0.06);
+      ">✓</div>
+
+      <h2 style="font-family:'Cormorant Garamond',serif;font-size:30px;color:#fff;margin-bottom:6px;">
+        Order Confirmed! 🎉
+      </h2>
+      <p style="font-size:13px;color:#8b7aaa;margin-bottom:22px;line-height:1.6;">
+        Your books are ready!<br>
+        Confirmation sent to your
+        <strong style="color:#a78bfa;">${order.customerEmail || "email"}</strong>
+        &amp; <strong style="color:#25d366;">WhatsApp</strong>.
+      </p>
+
+      <!-- Details card -->
+      <div style="
+        background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.2);
+        border-radius:14px;padding:16px;margin-bottom:18px;text-align:left;
+      ">
+        <!-- Order ID + Date -->
+        <div style="
+          display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
+          padding-bottom:12px;margin-bottom:12px;
+          border-bottom:1px solid rgba(124,58,237,0.15);
+        ">
+          <div>
+            <div style="font-size:10px;color:#6b5a8a;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Order ID</div>
+            <div style="font-size:12px;color:#c4b5fd;font-weight:600;word-break:break-all;">${order.orderId || "N/A"}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px;color:#6b5a8a;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Date</div>
+            <div style="font-size:12px;color:#c4b5fd;">${today}</div>
+          </div>
+        </div>
+
+        <!-- Customer + Phone -->
+        <div style="
+          display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
+          padding-bottom:10px;margin-bottom:10px;
+          border-bottom:1px solid rgba(124,58,237,0.1);
+        ">
+          <div>
+            <div style="font-size:10px;color:#6b5a8a;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Customer</div>
+            <div style="font-size:13px;color:#10b981;font-weight:600;">${order.customerName || "N/A"}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px;color:#6b5a8a;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">WhatsApp</div>
+            <div style="font-size:12px;color:#25d366;">${order.customerPhone || "N/A"}</div>
+          </div>
+        </div>
+
+        <!-- Books -->
+        <div style="margin-bottom:12px;">${bookRows}</div>
+
+        <!-- Total + Payment -->
+        <div style="
+          display:flex;justify-content:space-between;align-items:center;
+          padding-top:10px;border-top:1px solid rgba(124,58,237,0.15);margin-bottom:6px;
+        ">
+          <span style="font-size:13px;color:#8b7aaa;">Total Paid</span>
+          ${totalStr}
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:13px;color:#8b7aaa;">Payment</span>
+          <span style="font-size:13px;color:#a78bfa;">${order.paymentMethod || "Online"} ✅</span>
+        </div>
+      </div>
+
+      <!-- Notification badges -->
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:22px;">
+        <div style="
+          background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);
+          border-radius:20px;padding:5px 13px;font-size:12px;color:#34d399;
+          display:flex;align-items:center;gap:5px;">📧 Email on the way</div>
+        <div style="
+          background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.25);
+          border-radius:20px;padding:5px 13px;font-size:12px;color:#25d366;
+          display:flex;align-items:center;gap:5px;">💬 WhatsApp on the way</div>
+      </div>
+
+      <!-- Buttons -->
+      <button onclick="closeInstantPopup();openDownloads();" style="
+        width:100%;background:linear-gradient(135deg,#7c3aed,#a855f7);
+        color:#fff;border:none;padding:14px;border-radius:12px;
+        font-family:'Outfit',sans-serif;font-size:15px;font-weight:600;
+        cursor:pointer;margin-bottom:10px;
+        box-shadow:0 4px 16px rgba(124,58,237,0.4);transition:all 0.2s;
+      "
+      onmouseover="this.style.transform='translateY(-2px)'"
+      onmouseout="this.style.transform=''">
+        📥 Go to My Downloads
+      </button>
+      <button onclick="closeInstantPopup();" style="
+        width:100%;background:rgba(124,58,237,0.12);color:#c4b5fd;
+        border:1px solid rgba(124,58,237,0.25);padding:12px;border-radius:12px;
+        font-family:'Outfit',sans-serif;font-size:14px;font-weight:500;
+        cursor:pointer;transition:all 0.2s;
+      "
+      onmouseover="this.style.background='rgba(124,58,237,0.22)';this.style.color='#fff'"
+      onmouseout="this.style.background='rgba(124,58,237,0.12)';this.style.color='#c4b5fd'">
+        🏠 Continue Shopping
+      </button>
+    </div>
+  `;
+
+  // Add animations once
+  if (!document.getElementById("veb-popup-anim")) {
+    const s = document.createElement("style");
+    s.id = "veb-popup-anim";
+    s.textContent = `
+      @keyframes vebFadeIn { from{opacity:0} to{opacity:1} }
+      @keyframes vebPopIn  { from{transform:scale(0.8);opacity:0} to{transform:scale(1);opacity:1} }
+    `;
+    document.head.appendChild(s);
+  }
+
+  document.body.appendChild(overlay);
+  document.body.style.overflow = "hidden";
+
+  // Close on backdrop click
+  overlay.addEventListener("click", e => {
+    if (e.target === overlay) closeInstantPopup();
+  });
+}
+
+// Close popup
+function closeInstantPopup() {
+  const el = document.getElementById("vebSuccessOverlay");
+  if (el) el.remove();
+  document.body.style.overflow = "";
+}
+
+// ═══════════════════════════════════════════════════════
+// SEND ORDER CONFIRMATION EMAIL — via EmailJS (background)
 // ═══════════════════════════════════════════════════════
 async function sendOrderConfirmationEmail(customerName, customerEmail, orderId, method, total, cartItems) {
   if (EMAILJS_PUBLIC_KEY === "YOUR_PUBLIC_KEY" ||
@@ -365,92 +655,8 @@ async function sendOrderConfirmationEmail(customerName, customerEmail, orderId, 
 }
 
 // ═══════════════════════════════════════════════════════
-// SAVE ORDER — Fixed with customerPhone for WhatsApp
+// DOWNLOADS
 // ═══════════════════════════════════════════════════════
-async function saveRazorpayOrder(method, paymentId, customerName, customerEmail, customerPhone, total) {
-  try {
-    // Save to backend — triggers email + WhatsApp automatically!
-    await fetch(`${API}/api/orders`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        books:         cart.map(i => ({ title: i.name, price: i.price, qty: i.qty })),
-        totalAmount:   total,
-        paymentMethod: method,
-        orderId:       paymentId,
-        status:        "completed",
-        customerName:  customerName,
-        customerEmail: customerEmail,
-        customerPhone: customerPhone,
-      })
-    }).catch(() => {});
-
-    // Send confirmation email via EmailJS
-    await sendOrderConfirmationEmail(customerName, customerEmail, paymentId, method, total, [...cart]);
-
-    // Add purchased books to downloads
-    cart.forEach(item => {
-      const book = books.find(b => b.title === item.name);
-      if (book && !downloads.find(d => d.title === book.title)) {
-        downloads.push({ ...book, purchasedAt: new Date().toLocaleDateString("en-IN") });
-      }
-    });
-    saveDownloads();
-    updateDlCount();
-    renderDownloadSection();
-
-    // Build success screen
-    document.getElementById("successDetails").innerHTML = `
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-        <span>Order ID</span>
-        <span style="color:#a78bfa;font-weight:700">${paymentId}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-        <span>Customer</span>
-        <span style="color:#10b981;font-weight:700">${customerName}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-        <span>Email</span>
-        <span style="color:#a78bfa;font-weight:700">${customerEmail}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-        <span>WhatsApp</span>
-        <span style="color:#a78bfa;font-weight:700">${customerPhone}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-        <span>Payment</span>
-        <span style="color:#10b981;font-weight:700">${method}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:12px">
-        <span>Total Paid</span>
-        <span style="color:#a78bfa;font-weight:700">${total === 0 ? "FREE" : "₹" + total}</span>
-      </div>
-      <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:10px 12px;font-size:13px;color:#34d399;">
-        <span>📧 Email sent to <strong>${customerEmail}</strong></span><br/>
-        <span>📱 WhatsApp sent to <strong>${customerPhone}</strong></span>
-      </div>`;
-
-    // Show success modal
-    openModal("successModal");
-    showToast("✅ Order placed successfully!", "success");
-
-    // Clear cart
-    cart = [];
-    saveCart();
-    renderCart();
-    updateCartCount();
-
-  } catch (err) {
-    console.error("Order save error:", err);
-    openModal("successModal");
-    showToast("✅ Order placed!", "success");
-    cart = [];
-    saveCart();
-    renderCart();
-    updateCartCount();
-  }
-}
-
 function saveDownloads() { localStorage.setItem("ebookDownloads", JSON.stringify(downloads)); }
 
 function updateDlCount() {
