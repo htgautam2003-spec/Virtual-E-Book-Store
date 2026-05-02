@@ -154,14 +154,11 @@
     }
     .contact-msg.success { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); color: #34d399; display: flex; }
     .contact-msg.error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #f87171; display: flex; }
-
-    /* ADMIN BADGE in navbar */
     .admin-badge {
       background: linear-gradient(135deg,#7c3aed,#a855f7);
       color:#fff; font-size:11px; font-weight:600;
       padding:2px 7px; border-radius:20px; margin-left:4px;
     }
-
     @media (max-width: 768px) {
       .auth-btns { gap: 7px; }
       .btn-login, .btn-signup { padding: 7px 13px; font-size: 13px; }
@@ -201,13 +198,15 @@
     <div class="pay-field" style="margin-top:12px">
       <label>Your Email <span style="color:#a78bfa">(Order confirmation will be sent here)</span></label>
       <input type="email" id="customerEmail" placeholder="your@email.com">
-      <input 
-           type="tel" 
-          id="customerPhone" 
-          placeholder="📱 WhatsApp Number (10 digits)"
-          maxlength="10"
-         style="width:100%;padding:10px;margin-top:8px;border:1px solid #ddd;border-radius:8px;font-size:14px;"
-/>
+      <!-- FIX Bug 4: maxlength changed from 10 to 13, pattern added -->
+      <input
+        type="tel"
+        id="customerPhone"
+        placeholder="📱 WhatsApp Number (10 digits)"
+        maxlength="13"
+        pattern="[0-9]{10}"
+        style="width:100%;padding:10px;margin-top:8px;border:1px solid #ddd;border-radius:8px;font-size:14px;"
+      />
     </div>
     <div class="order-summary">
       <h4>Order Summary</h4>
@@ -268,7 +267,7 @@
   </div>
 </div>
 
-<!-- ADMIN MODAL — only shown to admin -->
+<!-- ADMIN MODAL -->
 <div class="modal-overlay" id="adminModal">
   <div class="modal" style="max-width:540px">
     <button class="close-modal" onclick="closeModal('adminModal')">×</button>
@@ -315,7 +314,7 @@
   </div>
 </div>
 
-<!-- ACCESS DENIED MODAL — shown to customers who try admin -->
+<!-- ACCESS DENIED MODAL -->
 <div class="modal-overlay" id="accessDeniedModal">
   <div class="modal" style="max-width:400px;text-align:center">
     <button class="close-modal" onclick="closeModal('accessDeniedModal')">×</button>
@@ -440,19 +439,15 @@
         <i class='bx bx-download'></i>
         <span id="dlCount" style="display:none"></span>
       </button>
-
-      <!-- ADMIN BUTTON — hidden by default, only shown to admin after login -->
       <button class="icon-btn admin-btn" id="adminPanelBtn"
         onclick="openAdminPanel()" title="Admin Panel"
         style="display:none">
         <i class='bx bx-shield'></i>
       </button>
-
       <div class="auth-btns" id="authBtns">
         <button class="btn-login" onclick="openAuthModal('login')"><i class='bx bx-log-in'></i> Login</button>
         <button class="btn-signup" onclick="openAuthModal('signup')"><i class='bx bx-user-plus'></i> Sign Up</button>
       </div>
-
       <div class="user-dropdown" id="userDropdown" style="display:none">
         <button class="user-avatar-btn" onclick="toggleDropdown()">
           <div class="avatar-circle" id="userAvatarInitial">U</div>
@@ -466,7 +461,6 @@
           <button class="dropdown-item"><i class='bx bx-purchase-tag'></i> My Orders</button>
           <button class="dropdown-item"><i class='bx bx-cog'></i> Settings</button>
           <div class="dropdown-divider"></div>
-          <!-- Admin Panel link in dropdown — only visible to admin -->
           <a href="report.html" class="dropdown-item admin-only-item" id="reportLink" style="display:none">
             <i class='bx bx-bar-chart-alt-2'></i> Reports &amp; Analytics
           </a>
@@ -474,7 +468,6 @@
           <button class="dropdown-item logout" onclick="doLogout()"><i class='bx bx-log-out'></i> Logout</button>
         </div>
       </div>
-
       <button class="cart-btn" onclick="toggleCart()">
         <i class='bx bx-cart'></i> Cart
         <span id="cartCount">0</span>
@@ -731,12 +724,8 @@
 <script src="my.js"></script>
 
 <script>
-/* ══════════════════════════════════════════════════════
-   ADMIN EMAIL — change this if you change your email
-══════════════════════════════════════════════════════ */
 var ADMIN_EMAIL = 'htgautam2003@gmail.com';
 
-/* ══ CHECK IF CURRENT USER IS ADMIN ══ */
 function isAdmin() {
   var saved = localStorage.getItem('veb_user');
   if (!saved) return false;
@@ -746,16 +735,11 @@ function isAdmin() {
   } catch(e) { return false; }
 }
 
-/* ══ OPEN ADMIN PANEL — checks role first ══ */
 function openAdminPanel() {
-  if (isAdmin()) {
-    openModal('adminModal');
-  } else {
-    openModal('accessDeniedModal');
-  }
+  if (isAdmin()) { openModal('adminModal'); }
+  else { openModal('accessDeniedModal'); }
 }
 
-/* ══ NAV HELPERS ══ */
 function updateNavForUser(user) {
   var ab = document.getElementById('authBtns');
   var ud = document.getElementById('userDropdown');
@@ -768,11 +752,9 @@ function updateNavForUser(user) {
   var nameEl   = document.getElementById('userDisplayName');
   if (avatarEl) avatarEl.textContent = initials;
   if (nameEl)   nameEl.textContent   = (user.name || '').split(' ')[0];
-
-  /* Show admin button and report link ONLY for admin email */
-  var adminBtn    = document.getElementById('adminPanelBtn');
-  var reportLink  = document.getElementById('reportLink');
-  var reportDiv   = document.getElementById('reportDivider');
+  var adminBtn   = document.getElementById('adminPanelBtn');
+  var reportLink = document.getElementById('reportLink');
+  var reportDiv  = document.getElementById('reportDivider');
   if (user.email === ADMIN_EMAIL) {
     if (adminBtn)   adminBtn.style.display   = 'flex';
     if (reportLink) reportLink.style.display = 'flex';
@@ -789,12 +771,10 @@ function updateNavForGuest() {
   var ud = document.getElementById('userDropdown');
   if (ab) { ab.style.display = 'flex'; ab.style.visibility = 'visible'; ab.style.opacity = '1'; }
   if (ud) { ud.style.display = 'none'; ud.classList.remove('visible'); }
-  /* Always hide admin button for guests */
   var adminBtn = document.getElementById('adminPanelBtn');
   if (adminBtn) adminBtn.style.display = 'none';
 }
 
-/* ══ AUTH MODAL ══ */
 function openAuthModal(tab) {
   switchAuthTab(tab || 'login');
   clearAuthMsg();
@@ -809,7 +789,6 @@ document.getElementById('authModalOverlay').addEventListener('click', function(e
   if (e.target === this) closeAuthModal();
 });
 
-/* ══ TAB SWITCH ══ */
 function switchAuthTab(tab) {
   var isLogin = tab === 'login';
   document.getElementById('authLoginForm').style.display  = isLogin ? 'block' : 'none';
@@ -822,7 +801,6 @@ function switchAuthTab(tab) {
   clearAuthMsg();
 }
 
-/* ══ MESSAGES ══ */
 function showAuthMsg(msg, type) {
   var el = document.getElementById('authMsg');
   el.textContent = msg;
@@ -834,7 +812,6 @@ function clearAuthMsg() {
   el.className = 'auth-msg';
 }
 
-/* ══ PASSWORD TOGGLE ══ */
 function togglePassVis(inputId, btn) {
   var inp = document.getElementById(inputId);
   var icon = btn.querySelector('i');
@@ -842,7 +819,6 @@ function togglePassVis(inputId, btn) {
   else { inp.type = 'password'; icon.className = 'bx bx-hide'; }
 }
 
-/* ══ LOGIN ══ */
 function doLogin() {
   var email = document.getElementById('loginEmail').value.trim();
   var pass  = document.getElementById('loginPassword').value;
@@ -856,7 +832,6 @@ function doLogin() {
   loginSuccess(user);
 }
 
-/* ══ SIGNUP ══ */
 function doSignup() {
   var name    = document.getElementById('signupName').value.trim();
   var email   = document.getElementById('signupEmail').value.trim();
@@ -878,7 +853,6 @@ function doSignup() {
   setTimeout(function() { loginSuccess(newUser); }, 900);
 }
 
-/* ══ GOOGLE LOGIN ══ */
 function handleGoogleLogin() {
   import('./auth.js').then(function(mod) {
     mod.googleLogin().then(function(fbUser) {
@@ -897,7 +871,6 @@ function handleGoogleLogin() {
   }).catch(function(e) { console.error(e); });
 }
 
-/* ══ FORGOT PASSWORD ══ */
 function showForgot() {
   var email = document.getElementById('loginEmail').value.trim();
   if (!email) { showAuthMsg('Enter your email above first.', 'error'); return; }
@@ -910,12 +883,10 @@ function showForgot() {
   }).catch(function(e) { console.error(e); });
 }
 
-/* ══ SOCIAL PLACEHOLDER ══ */
 function socialAuth(provider) {
   showAuthMsg(provider + ' login coming soon!', 'success');
 }
 
-/* ══ LOGIN SUCCESS ══ */
 function loginSuccess(user) {
   localStorage.setItem('veb_user', JSON.stringify(user));
   closeAuthModal();
@@ -927,7 +898,6 @@ function loginSuccess(user) {
   }
 }
 
-/* ══ LOGOUT ══ */
 function doLogout() {
   localStorage.removeItem('veb_user');
   updateNavForGuest();
@@ -940,7 +910,6 @@ function doLogout() {
   }).catch(function(){});
 }
 
-/* ══ DROPDOWN ══ */
 function toggleDropdown(forceClose) {
   var menu = document.getElementById('dropdownMenu');
   if (!menu) return;
@@ -955,32 +924,23 @@ document.addEventListener('click', function(e) {
   }
 });
 
-/* ══ EMAIL VALIDATOR ══ */
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-/* ══ RESTORE SESSION ON PAGE LOAD ══ */
 document.addEventListener('DOMContentLoaded', function() {
-  /* Always hide admin button first */
   var adminBtn = document.getElementById('adminPanelBtn');
   if (adminBtn) adminBtn.style.display = 'none';
-
   updateNavForGuest();
   var saved = localStorage.getItem('veb_user');
   if (saved) {
     try {
       var user = JSON.parse(saved);
-      if (user && user.name) {
-        updateNavForUser(user);
-      }
-    } catch(e) {
-      localStorage.removeItem('veb_user');
-    }
+      if (user && user.name) { updateNavForUser(user); }
+    } catch(e) { localStorage.removeItem('veb_user'); }
   }
 });
 
-/* ══ EXPOSE ALL FUNCTIONS TO WINDOW ══ */
 window.openAuthModal     = openAuthModal;
 window.closeAuthModal    = closeAuthModal;
 window.switchAuthTab     = switchAuthTab;

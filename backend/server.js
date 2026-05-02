@@ -24,15 +24,13 @@ mongoose.connect(process.env.MONGO_URI)
   .catch((err) => console.log("❌ MongoDB Error:", err));
 
 // ── NODEMAILER SETUP ──────────────────────────────────
-// FIX: EMAIL_PASS must be a 16-char Google App Password
-// (Google Account → Security → 2-Step Verification → App Passwords)
 const transporter = nodemailer.createTransport({
   host:   "smtp.gmail.com",
   port:   587,
   secure: false,
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,   // ← Google App Password, NOT your Gmail login password
+    pass: process.env.EMAIL_PASS,   // ← Must be a 16-char Google App Password
   },
   tls: { rejectUnauthorized: false },
   family: 4
@@ -43,6 +41,21 @@ const twilioClient = twilio(
   process.env.TWILIO_ACCOUNT_SID,
   process.env.TWILIO_AUTH_TOKEN
 );
+
+// ═════════════════════════════════════════════════════
+// FIX (Bug 5): Verify email credentials at startup so you
+// know immediately if Gmail App Password is wrong — instead
+// of finding out silently when the first order fails.
+// ═════════════════════════════════════════════════════
+transporter.verify((error) => {
+  if (error) {
+    console.error("❌ EMAIL CONFIG ERROR — emails will NOT send!");
+    console.error("   Reason:", error.message);
+    console.error("   Fix: Set EMAIL_USER and EMAIL_PASS (16-char Google App Password) in .env");
+  } else {
+    console.log("✅ Email transporter ready — Gmail connected as:", process.env.EMAIL_USER);
+  }
+});
 
 // ═════════════════════════════════════════════════════
 // SCHEMAS
@@ -84,14 +97,11 @@ const User = mongoose.model("User", UserSchema);
 // HELPERS
 // ═════════════════════════════════════════════════════
 
-// FIX (Bug 4): Normalize Indian phone numbers correctly
+// Normalize Indian phone numbers correctly
 // Handles: 9876543210 / 919876543210 / +919876543210 / +91 98765 43210
 function normalizeIndianPhone(phone) {
-  // Remove spaces and all non-numeric/plus chars
   let p = phone.toString().replace(/\s+/g, "").replace(/[^0-9+]/g, "");
-  // Strip country code variants
   p = p.replace(/^\+91/, "").replace(/^91/, "");
-  // Keep only last 10 digits (handles any leftover prefix noise)
   p = p.slice(-10);
   return "+91" + p;
 }
@@ -148,7 +158,6 @@ async function sendOrderConfirmationEmail(customerEmail, customerName, order) {
     await transporter.sendMail(mailOptions);
     console.log("📧 Email sent to:", customerEmail);
   } catch (err) {
-    // FIX (Bug 5): Log full error details, not just message
     console.error("❌ Email failed:", err.message);
     console.error("❌ Email error code:", err.code);
     console.error("❌ Email response:", err.response);
@@ -181,34 +190,29 @@ async function sendContactEmail(name, email, phone, message) {
 
 // ═════════════════════════════════════════════════════
 // WHATSAPP FUNCTION
-// FIX (Bug 2): Single unified function — removed duplicate
-// FIX (Bug 4): Uses normalizeIndianPhone() for correct number format
-// FIX (Bug 5): Logs full Twilio error code + moreInfo URL
+// FIX (Bug 6): Added Twilio error code 63016 detection —
+//   this is the "customer has not opted into sandbox" error.
+//   Instead of silently failing, we now log a clear message
+//   telling you exactly what to do, and return a structured
+//   result so the order route can log it properly.
 // ═════════════════════════════════════════════════════
 async function sendWhatsAppMessage(customerPhone, customerName, order) {
   try {
-    // Log credential status on startup
     console.log("📱 Attempting WhatsApp to:", customerPhone);
     console.log("TWILIO_SID:",   process.env.TWILIO_ACCOUNT_SID  ? "✅ Loaded" : "❌ Missing");
     console.log("TWILIO_TOKEN:", process.env.TWILIO_AUTH_TOKEN    ? "✅ Loaded" : "❌ Missing");
     console.log("TWILIO_FROM:",  process.env.TWILIO_WHATSAPP_FROM ? "✅ Loaded" : "❌ Missing");
 
-    // FIX (Bug 4): Normalize phone number — no more double +91
     const toNumber = normalizeIndianPhone(customerPhone);
     console.log("📱 Normalized number:", toNumber);
 
-    // Build book list
     const books      = order.books || [];
     const bookTitles = books.length > 0
       ? books.map(b => `• ${b.title}`).join("\n")
       : "• Books purchased";
 
-    // FIX (Bug 3 reminder): TWILIO_WHATSAPP_FROM must be "whatsapp:+14155238886"
-    // FIX (Bug 1 reminder): Customer must have opted into sandbox by texting
-    //   "join <your-keyword>" to +1 415 523 8886 on WhatsApp before this works.
-    //   For production, upgrade to a Twilio-approved WhatsApp sender.
     const message = await twilioClient.messages.create({
-      from: process.env.TWILIO_WHATSAPP_FROM,
+      from: process.env.TWILIO_WHATSAPP_FROM,   // Must be "whatsapp:+14155238886" for sandbox
       to:   `whatsapp:${toNumber}`,
       body:
         `🎉 *Order Confirmed!*\n` +
@@ -228,14 +232,38 @@ async function sendWhatsAppMessage(customerPhone, customerName, order) {
     });
 
     console.log("✅ WhatsApp sent! SID:", message.sid);
-    return true;
+    return { success: true, sid: message.sid };
+
   } catch (err) {
-    // FIX (Bug 5): Full Twilio error logging
+    // FIX (Bug 6): Detect the most common sandbox failure and give a clear fix message
+    if (err.code === 63016) {
+      console.error("❌ WhatsApp FAILED — Customer has NOT opted into the Twilio sandbox!");
+      console.error("   The customer must first send the message below on WhatsApp:");
+      console.error(`   → Text "join <your-sandbox-keyword>" to +1 415 523 8886`);
+      console.error("   → Find your keyword at: https://console.twilio.com/us1/develop/sms/try-it-out/whatsapp-learn");
+      console.error("   For production (no opt-in needed): apply for a Twilio WhatsApp Business sender.");
+      return { success: false, reason: "customer_not_opted_in", code: err.code };
+    }
+
+    if (err.code === 20003) {
+      console.error("❌ WhatsApp FAILED — Twilio credentials are invalid!");
+      console.error("   Check TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN in your .env file.");
+      return { success: false, reason: "invalid_credentials", code: err.code };
+    }
+
+    if (err.code === 21606) {
+      console.error("❌ WhatsApp FAILED — TWILIO_WHATSAPP_FROM number is not a valid WhatsApp sender!");
+      console.error("   Value must be: whatsapp:+14155238886  (Twilio sandbox number)");
+      console.error("   Current value:", process.env.TWILIO_WHATSAPP_FROM);
+      return { success: false, reason: "invalid_from_number", code: err.code };
+    }
+
+    // Generic catch-all
     console.error("❌ WhatsApp error code:", err.code);
     console.error("❌ WhatsApp error message:", err.message);
     if (err.moreInfo) console.error("❌ More info:", err.moreInfo);
     if (err.status)   console.error("❌ HTTP status:", err.status);
-    return false;
+    return { success: false, reason: "unknown", code: err.code, message: err.message };
   }
 }
 
@@ -387,9 +415,9 @@ app.post("/api/orders", async (req, res) => {
     const order = new Order(req.body);
     await order.save();
 
-    // Track notification results
     let emailSent    = false;
     let whatsappSent = false;
+    let whatsappInfo = null;
 
     // ✅ Send Email
     if (req.body.customerEmail) {
@@ -406,18 +434,27 @@ app.post("/api/orders", async (req, res) => {
     }
 
     // ✅ Send WhatsApp
+    // FIX (Bug 6): Now uses structured return value instead of boolean
     if (req.body.customerPhone) {
-      whatsappSent = await sendWhatsAppMessage(
+      const waResult = await sendWhatsAppMessage(
         req.body.customerPhone,
         req.body.customerName || "Customer",
         order
       );
+      whatsappSent = waResult.success;
+      whatsappInfo = waResult;
+
+      // Log clear status for your server logs
+      if (!waResult.success) {
+        console.warn(`⚠️  WhatsApp not sent for order ${order.orderId} — reason: ${waResult.reason || "unknown"}`);
+      }
     }
 
     res.status(201).json({
       message:      "✅ Order saved!",
       emailSent,
       whatsappSent,
+      whatsappInfo,
       order
     });
   } catch (err) {
@@ -548,5 +585,6 @@ app.listen(PORT, () => {
   console.log("   EMAIL_PASS  → Must be a Google App Password (16 chars)");
   console.log("   WhatsApp    → Customers must opt-in to Twilio sandbox first");
   console.log("               → Text 'join <keyword>' to +1 415 523 8886 on WhatsApp");
+  console.log("   EMAIL CHECK → Watch startup log for ✅/❌ email transporter status");
   console.log("─────────────────────────────────────────");
 });

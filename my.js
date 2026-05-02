@@ -282,8 +282,9 @@ async function processPayment(method) {
   if (!customerEmail || !isValidEmail(customerEmail)) {
     showToast("❌ Please enter valid email!", "error"); return;
   }
-  if (!customerPhone || customerPhone.length < 10) {
-    showToast("❌ Please enter valid WhatsApp number!", "error"); return;
+  // FIX (Bug 4): Accept 10-digit numbers (server normalizes +91 automatically)
+  if (!customerPhone || customerPhone.replace(/\D/g, "").length < 10) {
+    showToast("❌ Please enter valid 10-digit WhatsApp number!", "error"); return;
   }
 
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
@@ -334,21 +335,24 @@ async function processPayment(method) {
 }
 
 // ═══════════════════════════════════════════════════════
-// SAVE ORDER — ⚡ INSTANT POPUP FIX
-// KEY CHANGE: Show popup FIRST, THEN send notifications
-// in background using .then() — no await = no waiting
+// SAVE ORDER
+// FIX (Bug 3): Snapshot cart BEFORE clearing it
+// FIX (Bug 1): Pass the snapshot to showInstantSuccessPopup
+// FIX (Bug 2): Pass snapshot to sendOrderConfirmationEmail
 // ═══════════════════════════════════════════════════════
 async function saveRazorpayOrder(method, paymentId, customerName, customerEmail, customerPhone, total) {
   try {
 
-    // ══ STEP 1: Save order to backend ══════════════════
-    // Server responds INSTANTLY after saving to MongoDB.
-    // Email + WhatsApp fire in background on server side.
+    // ══ STEP 1: Snapshot cart NOW before anything clears it ══
+    // FIX Bug 3 + Bug 1 + Bug 2: Save a deep copy of cart at this moment
+    const cartSnapshot = JSON.parse(JSON.stringify(cart));
+
+    // ══ STEP 2: Save order to backend ══════════════════
     const res = await fetch(`${API}/api/orders`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        books:         cart.map(i => ({ title: i.name, price: i.price, qty: i.qty })),
+        books:         cartSnapshot.map(i => ({ title: i.name, price: i.price, qty: i.qty })),
         totalAmount:   total,
         paymentMethod: method,
         orderId:       paymentId,
@@ -359,8 +363,8 @@ async function saveRazorpayOrder(method, paymentId, customerName, customerEmail,
       })
     });
 
-    // ══ STEP 2: Add books to downloads ═════════════════
-    cart.forEach(item => {
+    // ══ STEP 3: Add books to downloads ═════════════════
+    cartSnapshot.forEach(item => {
       const book = books.find(b => b.title === item.name);
       if (book && !downloads.find(d => d.title === book.title)) {
         downloads.push({ ...book, purchasedAt: new Date().toLocaleDateString("en-IN") });
@@ -370,14 +374,14 @@ async function saveRazorpayOrder(method, paymentId, customerName, customerEmail,
     updateDlCount();
     renderDownloadSection();
 
-    // ══ STEP 3: Clear cart ══════════════════════════════
+    // ══ STEP 4: Clear cart ══════════════════════════════
     cart = [];
     saveCart();
     renderCart();
     updateCartCount();
 
-    // ══ STEP 4: ⚡ SHOW POPUP INSTANTLY ════════════════
-    // This runs IMMEDIATELY — no waiting for email/WhatsApp
+    // ══ STEP 5: ⚡ SHOW POPUP with the snapshot ═════════
+    // FIX Bug 1: Pass cartSnapshot (not empty cart) so book list shows correctly
     showInstantSuccessPopup({
       orderId:       paymentId,
       customerName,
@@ -385,21 +389,25 @@ async function saveRazorpayOrder(method, paymentId, customerName, customerEmail,
       customerPhone,
       paymentMethod: method,
       totalAmount:   total,
-      books:         cart.map ? [] : [],  // cart already cleared above — use stored value
+      books:         cartSnapshot.map(i => ({ title: i.name, price: i.price, qty: i.qty })),
     });
 
     showToast("✅ Order placed successfully!", "success");
 
-    // ══ STEP 5: Send EmailJS in background ═════════════
-    // NO await = does not block popup from showing
+    // ══ STEP 6: Send EmailJS in background ═════════════
+    // FIX Bug 2: Pass cartSnapshot directly — no longer reads from missing localStorage key
     sendOrderConfirmationEmail(
       customerName, customerEmail, paymentId, method, total,
-      JSON.parse(localStorage.getItem("ebookCart_last") || "[]")
+      cartSnapshot
     );
 
   } catch (err) {
     // Even on network error — show popup so customer isn't left hanging
     console.error("Order save error:", err);
+
+    // Snapshot may be gone if error was before we made it — use whatever cart still has
+    const emergencySnapshot = JSON.parse(JSON.stringify(cart));
+
     showInstantSuccessPopup({
       orderId:       paymentId,
       customerName,
@@ -407,7 +415,7 @@ async function saveRazorpayOrder(method, paymentId, customerName, customerEmail,
       customerPhone,
       paymentMethod: method,
       totalAmount:   total,
-      books:         [],
+      books:         emergencySnapshot.map(i => ({ title: i.name, price: i.price, qty: i.qty })),
     });
     showToast("✅ Order placed!", "success");
     cart = [];
@@ -419,7 +427,6 @@ async function saveRazorpayOrder(method, paymentId, customerName, customerEmail,
 
 // ═══════════════════════════════════════════════════════
 // ⚡ INSTANT SUCCESS POPUP
-// Shows immediately — matches your dark purple theme
 // ═══════════════════════════════════════════════════════
 function showInstantSuccessPopup(order) {
 
@@ -436,11 +443,7 @@ function showInstantSuccessPopup(order) {
     day: "2-digit", month: "long", year: "numeric"
   });
 
-  // Snapshot cart items BEFORE they are cleared
-  // (we pass them in from saveRazorpayOrder)
-  const items = order.books && order.books.length > 0
-    ? order.books
-    : JSON.parse(localStorage.getItem("ebookCart_snap") || "[]");
+  const items = order.books && order.books.length > 0 ? order.books : [];
 
   const bookRows = items.length > 0
     ? items.map(b => {
@@ -627,6 +630,8 @@ function closeInstantPopup() {
 
 // ═══════════════════════════════════════════════════════
 // SEND ORDER CONFIRMATION EMAIL — via EmailJS (background)
+// FIX (Bug 2): Now receives cartItems directly as parameter
+//              instead of reading from missing localStorage key
 // ═══════════════════════════════════════════════════════
 async function sendOrderConfirmationEmail(customerName, customerEmail, orderId, method, total, cartItems) {
   if (EMAILJS_PUBLIC_KEY === "YOUR_PUBLIC_KEY" ||
@@ -634,9 +639,12 @@ async function sendOrderConfirmationEmail(customerName, customerEmail, orderId, 
     console.log("EmailJS not configured yet — skipping email");
     return;
   }
-  const bookList = cartItems.map(i =>
-    `${i.name} x${i.qty} — ${i.price === 0 ? "FREE" : "₹" + (i.price * i.qty)}`
+
+  // cartItems is now the snapshot passed directly — always has data
+  const bookList = (cartItems || []).map(i =>
+    `${i.name || i.title} x${i.qty || 1} — ${i.price === 0 ? "FREE" : "₹" + ((i.price || 0) * (i.qty || 1))}`
   ).join("\n");
+
   try {
     await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_ORDER_TID, {
       customer_name:  customerName,
@@ -644,7 +652,7 @@ async function sendOrderConfirmationEmail(customerName, customerEmail, orderId, 
       order_id:       orderId,
       payment_method: method,
       total_amount:   total === 0 ? "FREE" : "₹" + total,
-      book_list:      bookList,
+      book_list:      bookList || "Books purchased",
       order_date:     new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),
       support_email:  "htgautam2003@gmail.com"
     });
